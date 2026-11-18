@@ -2,8 +2,10 @@ const headers={'Cache-Control':'private, no-store','Referrer-Policy':'no-referre
 function json(obj,status=200){return Response.json(obj,{status,headers});}
 async function api(request,env,url){
   const db=env.DB, path=url.pathname;
-  const account=request.headers.get('oai-authenticated-user-id');
-  const key=request.headers.get('x-concentra-key');
+  const active=await session(request,db);
+  if(request.headers.has('x-concentra-session')&&!active)return json({state:'anonymous'},401);
+  const account=active?.id||(request.headers.get('origin')===pagesOrigin?null:request.headers.get('oai-authenticated-user-id'));
+  const key=active?null:request.headers.get('x-concentra-key');
   const hash=key&&/^[a-f0-9]{64}$/.test(key)?await digest('profile:'+key):null;
   const linked=hash?await db.prepare('SELECT user FROM member_keys WHERE hash=?').bind(hash).first():null;
   const uid=key?(linked?.user||(hash?'personal:'+hash:null)):account;
@@ -15,7 +17,7 @@ async function api(request,env,url){
     const {results}=await db.prepare('SELECT p.id, p.kind, p.body, p.created, m.name, (p.user=?) AS mine FROM posts p JOIN members m ON p.user=m.user ORDER BY p.created DESC,p.id DESC LIMIT 60').bind(uid).all();
     return json({state:'member',name:member.name,posts:results,invite:env.GRUPO_INVITACION});
   }
-  if(request.method!=='POST'||request.headers.get('origin')!==url.origin||!request.headers.get('content-type')?.startsWith('application/json'))return json({},403);
+  if(request.method!=='POST'||![url.origin,pagesOrigin].includes(request.headers.get('origin'))||!request.headers.get('content-type')?.startsWith('application/json'))return json({},403);
   let body;
   try{body=await request.json();if(!body||typeof body!=='object')return json({},400);}catch{return json({},400);}
   if(path==='/api/clave'&&account&&!key&&member){
@@ -44,10 +46,10 @@ async function api(request,env,url){
 export default {async fetch(request,env){
   const url=new URL(request.url);
   if(url.pathname==='/api/calendario'||url.pathname.startsWith('/horarios/'))return calendar(request,env,url);
-  if(url.pathname.startsWith('/api/')){try{return await api(request,env,url);}catch{return json({message:'El muro no está disponible en este momento. Vuelve a intentar.'},503);}}
+  if(url.pathname.startsWith('/api/'))return withAccountAccess(request,env,url);
   if(url.pathname==='/robots.txt')return new Response('User-agent: *\nDisallow: /',{headers});
   if(url.pathname==='/bloqueador.zip')return new Response(Uint8Array.from(atob(assets[url.pathname]),c=>c.charCodeAt(0)),{headers:{...headers,'Content-Type':'application/zip','Content-Disposition':'attachment; filename="Concentra-bloqueo.zip"'}});
   if(!Object.hasOwn(assets,url.pathname))return new Response('Página no encontrada',{status:404,headers});
-  const types={'/':'text/html; charset=utf-8','/style.css':'text/css; charset=utf-8','/app.js':'application/javascript','/horario.js':'application/javascript','/grupo.js':'application/javascript','/icon.png':'image/png','/app.webmanifest':'application/manifest+json'};
+  const types={'/':'text/html; charset=utf-8','/style.css':'text/css; charset=utf-8','/app.js':'application/javascript','/horario.js':'application/javascript','/cuenta.js':'application/javascript','/grupo.js':'application/javascript','/icon.png':'image/png','/app.webmanifest':'application/manifest+json'};
   const value=assets[url.pathname];return new Response(url.pathname==='/icon.png'?Uint8Array.from(atob(value),c=>c.charCodeAt(0)):value,{headers:{...headers,'Content-Type':types[url.pathname]}});
 }};

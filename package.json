@@ -8,6 +8,10 @@
   },
   "devDependencies": {
     "drizzle-kit": "0.31.10",
-    "drizzle-orm": "0.45.2"
+    "drizzle-orm": "0.45.2",
+    "esbuild": "^0.28.2"
+  },
+  "dependencies": {
+    "jose": "^6.2.18"
   }
 }
