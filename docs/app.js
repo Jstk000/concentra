@@ -1,16 +1,48 @@
 'use strict';
 const $ = id => document.getElementById(id);
 const key = 'concentra.estudio.v1';
+const temporaryValues = new Map();
+const deviceStore = {
+  getItem(name) {
+    if (temporaryValues.has(name)) return temporaryValues.get(name);
+    try { return localStorage.getItem(name); }
+    catch { $('storageWarn').hidden = false; return null; }
+  },
+  setItem(name,value) {
+    try { localStorage.setItem(name,value); temporaryValues.delete(name); return true; }
+    catch { temporaryValues.set(name,value); $('storageWarn').hidden = false; return false; }
+  },
+  removeItem(name) {
+    try { localStorage.removeItem(name); temporaryValues.delete(name); }
+    catch { temporaryValues.set(name,null); $('storageWarn').hidden = false; }
+  }
+};
 const days = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
 const defaults = () => ({subject:'', goal:'', minutes:25, classes:[], history:[], timer:null});
 let data = defaults();
 function load() {
-  try { data = Object.assign(defaults(), JSON.parse(localStorage.getItem(key)) || {}); }
-  catch { $('storageWarn').hidden = false; }
+  let saved;
+  try { saved=JSON.parse(deviceStore.getItem(key)||'null'); }
+  catch { saved=null; $('dataWarn').hidden=false; }
+  data=Object.assign(defaults(),saved);
+  const validMinutes=n=>Number.isInteger(n)&&n>=1&&n<=180;
+  const validText=v=>typeof v==='string';
+  const validTime=v=>typeof v==='string'&&/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(v);
+  const validClass=c=>c&&validText(c.id)&&validText(c.name)&&Number.isInteger(c.day)&&c.day>=0&&c.day<=6&&validTime(c.from)&&validTime(c.until)&&c.from<c.until;
+  const validBlock=b=>b&&validText(b.id)&&validMinutes(b.minutes)&&validText(b.subject)&&validText(b.goal);
+  data.subject=validText(data.subject)?data.subject:'';
+  data.goal=validText(data.goal)?data.goal:'';
+  data.minutes=validMinutes(data.minutes)?data.minutes:25;
+  const classes=Array.isArray(data.classes)?data.classes.filter(validClass):[];
+  const history=Array.isArray(data.history)?data.history.filter(h=>validBlock(h)&&Number.isFinite(h.at)):[];
+  if(classes.length!==data.classes?.length||history.length!==data.history?.length)$('dataWarn').hidden=false;
+  data.classes=classes;data.history=history;
+  if(data.timer&&!(validBlock(data.timer)&&(Number.isFinite(data.timer.end)||(data.timer.end===null&&Number.isFinite(data.timer.left)&&data.timer.left>=0)))){data.timer=null;$('dataWarn').hidden=false;}
+  if(!Array.isArray(data.blockSites))delete data.blockSites;
 }
 function save() {
-  try { localStorage.setItem(key, JSON.stringify(data)); document.dispatchEvent(new Event('concentra-sync')); }
-  catch { $('storageWarn').hidden = false; }
+  deviceStore.setItem(key,JSON.stringify(data));
+  document.dispatchEvent(new Event('concentra-sync'));
 }
 load();
 document.addEventListener('click',e=>{if(e.target.closest('#proteger'))openProtection();});
@@ -37,8 +69,13 @@ const clockTime = t => new Date(t).toLocaleTimeString('es-CL',{hour:'2-digit',mi
 const freshId = () => globalThis.crypto?.randomUUID?.() || Date.now().toString(36) + Math.random().toString(36).slice(2);
 const today = () => dayKey(Date.now());
 function offsetDay(n) { const d = new Date(); d.setDate(d.getDate()+n); return d; }
-function say(s) { $('toast').textContent=s; clearTimeout(say.timeout); say.timeout=setTimeout(()=> $('toast').textContent='',4600); }
-function dialog(title, body) { $('modalTitle').textContent=title; $('modalBody').innerHTML=body; if (!$('modal').open) $('modal').showModal(); }
+function say(s) {
+  const status=$('modal').open?$('modalNotice'):$('toast');
+  status.textContent=s;
+  clearTimeout(status.noticeTimer);
+  status.noticeTimer=setTimeout(()=>status.textContent='',4600);
+}
+function dialog(title, body) { $('modalNotice').textContent=''; $('modalTitle').textContent=title; $('modalBody').innerHTML=body; if (!$('modal').open) $('modal').showModal(); }
 $('close').onclick=()=> $('modal').close();
 $('help').onclick=()=>dialog('Estudiar en el iPhone', `<h3>Agregar Concentra a Inicio</h3><p>En Safari, abre Compartir y elige Agregar a Inicio. Si aparece la opción Abrir como app web, actívala. Abre el ícono para empezar a registrar tus sesiones ahí.</p><h3>Quedarte en una sola app</h3><p>Activa Acceso guiado en Configuración → Accesibilidad y define tu código. Abre Concentra desde Inicio, presiona tres veces el botón lateral e inicia Acceso guiado. Al terminar, finaliza también Acceso guiado.</p><p>Durante Acceso guiado debes salir de ese modo para hacer una llamada de emergencia. <a href="https://support.apple.com/es-cl/111795" target="_blank" rel="noreferrer">Instrucciones de Apple</a></p><h3>Si necesitas otras apps para estudiar</h3><p>En Configuración → Enfoque puedes crear un modo Estudio, elegir qué avisos recibir y programar su horario.</p><h3>Tus datos</h3><p>El historial y las clases se guardan en este navegador. Borrar sus datos elimina estos registros. El reloj recupera el tiempo transcurrido al volver a la app. El aviso de término aparece dentro de Concentra.</p>`);
 function go() {
@@ -94,7 +131,7 @@ function renderTimer(){
   $('sessionTitle').textContent=t?t.subject||'Bloque de estudio':'Tiempo de estudiar';
   $('presets').hidden=!!t;$('runningNote').hidden=!t;
   $('runningNote').textContent=t?(t.goal||'Una tarea a la vez.'):'';
-  $('start').textContent=t?(paused?'▶　Continuar':'Ⅱ　Pausar'):'▶　Iniciar sesión';
+  $('start').textContent=t?(paused?'▶　Continuar':'Ⅱ　Pausar'):'▶　Empezar bloque';
   $('stop').hidden=!t;$('subject').disabled=!!t;$('goal').disabled=!!t;
   document.querySelectorAll('[data-min]').forEach(b=>b.setAttribute('aria-pressed',Number(b.dataset.min)===data.minutes));
   const custom=![15,25,50].includes(data.minutes);

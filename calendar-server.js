@@ -15,7 +15,7 @@ function calendarText(row){
 async function calendar(request,env,url){
   const feed=url.pathname.match(/^\/horarios\/([a-f0-9]{64})\.ics$/);
   if(feed&&request.method==='GET'){
-    const row=await env.DB.prepare('SELECT * FROM calendars WHERE id=?').bind(await digest(feed[1])).first();
+    const row=await env.DB.prepare('SELECT * FROM calendars WHERE id=? AND changed>0').bind(await digest(feed[1])).first();
     return row?new Response(calendarText(row),{headers:{...headers,'Content-Type':'text/calendar; charset=utf-8'}}):new Response(null,{status:404,headers});
   }
   const origin=request.headers.get('origin');
@@ -27,11 +27,14 @@ async function calendar(request,env,url){
   if(request.method!=='POST'||!token)return respond({},403);
   const read=await digest('read:'+token),id=await digest(read);
   let body;try{const raw=await request.text();if(raw.length>40000)return respond({},413);body=JSON.parse(raw);}catch{return respond({},400);}
-  if(body?.remove===true){await env.DB.prepare('DELETE FROM calendars WHERE id=?').bind(id).run();return respond({ok:true});}
+  if(body?.remove===true){await env.DB.prepare("UPDATE calendars SET blocks='[]',changed=0 WHERE id=?").bind(id).run();return respond({ok:true});}
   const time=/^(?:[01]\d|2[0-3]):[0-5]\d$/;
   if(!Array.isArray(body?.classes)||body.classes.length>200||body.classes.some(c=>!c||typeof c.name!=='string'||!c.name.trim()||c.name.length>60||/[\x00-\x1F]/.test(c.name)||!Number.isInteger(c.day)||c.day<0||c.day>6||!time.test(c.from)||!time.test(c.until)||c.from>=c.until||!/^[-a-z0-9]{1,64}$/i.test(c.id)))return respond({message:'Revisa los bloques de tu horario (máximo 200).'},400);
   const now=Date.now(),blocks=JSON.stringify(body.classes.map(({id,name,day,from,until})=>({id,name,day,from,until})));
   const bucket=await digest((env.GRUPO_INVITACION||'')+new Date(now).toISOString().slice(0,10)+(request.headers.get('cf-connecting-ip')||'local'));
-  const result=await env.DB.prepare('INSERT INTO calendars(id,blocks,created,changed,bucket) SELECT ?,?,?,?,? WHERE EXISTS(SELECT 1 FROM calendars WHERE id=?) OR (SELECT COUNT(*) FROM calendars WHERE bucket=?)<80 ON CONFLICT(id) DO UPDATE SET blocks=excluded.blocks,changed=excluded.changed').bind(id,blocks,now,now,bucket,id,bucket).run();
-  return result.meta.changes?respond({url:url.origin+'/horarios/'+read+'.ics'}):respond({message:'Se alcanzó el límite de calendarios nuevos por hoy.'},429);
+  const result=await env.DB.prepare('INSERT INTO calendars(id,blocks,created,changed,bucket) SELECT ?,?,?,?,? WHERE EXISTS(SELECT 1 FROM calendars WHERE id=?) OR (SELECT COUNT(*) FROM calendars WHERE bucket=?)<80 ON CONFLICT(id) DO UPDATE SET blocks=excluded.blocks,changed=excluded.changed WHERE calendars.changed>0').bind(id,blocks,now,now,bucket,id,bucket).run();
+  if(result.meta.changes)return respond({url:url.origin+'/horarios/'+read+'.ics'});
+  const revoked=await env.DB.prepare('SELECT id FROM calendars WHERE id=? AND changed=0').bind(id).first();
+  if(revoked)return respond({message:'Esta suscripción se desactivó.'},410);
+  return respond({message:'Se alcanzó el límite de calendarios nuevos por hoy.'},429);
 }

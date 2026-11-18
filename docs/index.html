@@ -16,8 +16,8 @@
 <div class="dashboard"><article class="timer"><canvas id="land" aria-hidden="true"></canvas><div class="timerbody">
 <p class="eyebrow timerlabel"><i></i><span id="mode">Sesión de enfoque</span></p>
 <h2 id="sessionTitle">Tiempo de estudiar</h2><div class="digits" id="digits" role="timer">25:00</div>
-<div class="presets" id="presets" aria-label="Duración del bloque"><button data-min="15">15 min</button><button data-min="25">25 min</button><button data-min="50">50 min</button><button id="custom">Otra</button></div>
-<p id="runningNote" hidden></p><div class="actions"><button id="start" class="primary">▶　Iniciar sesión</button><button id="stop" hidden>Terminar</button></div>
+<div class="presets" id="presets" role="group" aria-label="Duración del bloque"><button data-min="15">15 min</button><button data-min="25">25 min</button><button data-min="50">50 min</button><button id="custom">Otra</button></div>
+<p id="runningNote" hidden></p><div class="actions"><button id="start" class="primary">▶　Empezar bloque</button><button id="stop" hidden>Terminar</button></div>
 <button id="medina" class="medina-link">Me estoy distrayendo</button>
 <button id="proteger" class="medina-link">Bloqueo y avisos</button>
 </div></article>
@@ -34,7 +34,7 @@
 <div id="room" class="two" hidden><section class="card"><p class="eyebrow">Compartir con el grupo</p><h2>¿En qué estás?</h2>
 <form id="postForm"><label for="kind">Tipo de publicación</label><select id="kind"><option>Meta</option><option>Rutina</option><option>Logro</option></select><label for="postText">Mensaje</label><textarea required maxlength="600" rows="4" id="postText" placeholder="Ej. Esta tarde quiero terminar la guía de álgebra. ¿Quién se suma?"></textarea><button id="useRoutine" type="button" class="link">Usar mi bloque de estudio</button><div><button class="solid">Publicar en el grupo</button></div></form>
 <p id="groupStatus" role="status"></p><hr><button id="convertProfile" class="link" hidden>Registrar mi perfil anterior</button><button id="inviteFriends" class="link">Compartir invitación ↗</button></section><section class="card"><div class="row"><h2>Muro del grupo</h2><button type="button" id="reloadFeed" class="link">Actualizar</button></div><div id="feed"></div></section></div></section>
-<p id="storageWarn" role="alert" hidden>El navegador impide guardar cambios. Esta sesión solo se conservará mientras la página esté abierta.</p>
+<p id="dataWarn" role="status" hidden>Hay registros locales que no se pudieron leer. Tus bloques válidos siguen disponibles.</p><p id="storageWarn" role="alert" hidden>Este navegador tiene el almacenamiento restringido. Los cambios temporales pueden perderse al cerrar o recargar la página.</p>
 </main><footer>Concentra <span>Estudio digital inteligente</span></footer>
-<dialog id="modal"><div class="row"><h2 id="modalTitle"></h2><button class="help" id="close" aria-label="Cerrar">×</button></div><div id="modalBody"></div></dialog><div role="status" id="toast"></div>
+<dialog id="modal" aria-labelledby="modalTitle"><div class="row"><h2 id="modalTitle"></h2><button class="help" id="close" aria-label="Cerrar">×</button></div><div id="modalBody"></div><p id="modalNotice" role="status"></p></dialog><div role="status" id="toast"></div>
 </body></html>

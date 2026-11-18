@@ -9,13 +9,14 @@
       try{sessionStorage.setItem(key,invitation);}catch{}
     }else if(!invitation){try{invitation=sessionStorage.getItem(key)||'';}catch{}}
   }
-  async function request(path,body,credential=localStorage.getItem(profileKey)){
+  async function request(path,body,credential=deviceStore.getItem(profileKey)){
     const options=body?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}:{cache:'no-store'};
-    const token=localStorage.getItem(sessionKey);
+    const token=deviceStore.getItem(sessionKey);
     if(token)options.headers={...options.headers,'x-concentra-session':token};
     else if(credential)options.headers={...options.headers,'x-concentra-key':credential};
     const response=await fetch(service+'/api/'+path,options);
     const result=await response.json();
+    if(response.status===401&&token)forgetSession(token);
     if(!response.ok&&!(response.status===401&&result.state==='anonymous'))throw Error(result.message||'No se pudo completar la acción. Vuelve a intentar.');
     if(body&&result.state==='anonymous')throw Error('Tu sesión venció. Vuelve a entrar al grupo.');
     return result;
@@ -37,7 +38,7 @@
       }else if(s.state==='guest'){
         enter(invitation?'Únete al grupo de estudio':'Pide una invitación',invitation?'Quienes se unan podrán leer tus publicaciones y compartir las suyas.':'Abre el enlace de invitación que te envió un amigo.',invitation?'joinForm':'');
       }else if(s.state==='member'){
-        $('entry').hidden=true;$('room').hidden=false;showPosts(s.posts);window.previousMember=!localStorage.getItem(sessionKey);$('convertProfile').hidden=!window.previousMember;
+        $('entry').hidden=true;$('room').hidden=false;showPosts(s.posts);window.previousMember=!deviceStore.getItem(sessionKey);$('convertProfile').hidden=!window.previousMember;
         memberLink=location.origin+location.pathname+'#invitar='+s.invite;
         invitation='';try{sessionStorage.removeItem(key);}catch{}
         if(location.hash.startsWith('#invitar=')){history.replaceState(null,'','#grupo');go();}
@@ -49,16 +50,21 @@
   }catch(err){$('entryInfo').textContent=err.message;}finally{b.disabled=false;}};
   $('login').onclick=()=>accountForm();
   $('convertProfile').onclick=()=>accountForm(true);
-  document.addEventListener('account-change',()=>{window.previousMember=false;loadRoom();});
+  document.addEventListener('account-change',()=>{
+    requestNumber++;window.previousMember=false;memberLink='';draftId=null;
+    if($('inviteURL')||$('removePost')){$('modal').close();$('modalBody').replaceChildren();}
+    $('room').hidden=true;$('feed').replaceChildren();$('postForm').reset();$('groupStatus').textContent='';
+    enter('Tu grupo','Cargando…','');loadRoom();
+  });
   $('useRoutine').onclick=()=>{
     const t=data.timer||data;
     $('kind').value='Rutina';$('postText').value=[t.subject||'Mi bloque de estudio',t.minutes+' min',t.goal||'Estudiar una tarea a la vez'].join(' · ');draftId=null;$('postText').focus();
   };
   $('postText').oninput=$('kind').onchange=()=>{draftId=null;};
   $('postForm').onsubmit=async e=>{e.preventDefault();const b=e.submitter;b.disabled=true;
-    draftId=draftId||crypto.randomUUID();
+    const sentId=draftId=draftId||crypto.randomUUID();
     try{await request('publicar',{id:draftId,kind:$('kind').value,text:$('postText').value});
-      $('postText').value='';draftId=null;$('groupStatus').textContent='Publicado en el grupo.';await loadRoom();
+      if(draftId===sentId){$('postText').value='';draftId=null;}$('groupStatus').textContent='Publicado en el grupo.';await loadRoom();
     }catch(err){$('groupStatus').textContent=err.message;}finally{b.disabled=false;}
   };
   $('feed').onclick=e=>{
