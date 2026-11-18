@@ -149,7 +149,7 @@ document.addEventListener('account-change',()=>{
 function currentReason(){
   return data.timer?.reason||data.reason||defaultReason;
 }
-function askReason(title,submitLabel,onConfirm){
+function askReason(title,submitLabel,onConfirm,followBlock=true){
   const token=accountToken(),scope=studyScope,timerId=data.timer?.id;
   reasonOwner=token;
   dialog(title,'<form id="reasonForm"><label for="reasonText">¿Qué quieres recordarte si te distraes?</label><textarea id="reasonText" required maxlength="240" rows="3"></textarea><button class="solid" type="submit">'+submitLabel+'</button></form>');
@@ -160,13 +160,18 @@ function askReason(title,submitLabel,onConfirm){
     event.preventDefault();
     const reason=input.value.trim();
     if(!reason){input.setCustomValidity('Escribe un motivo para este bloque.');input.reportValidity();return;}
-    if(token!==accountToken()||scope!==studyScope||timerId!==data.timer?.id){
+    if(token!==accountToken()||scope!==studyScope||followBlock&&timerId!==data.timer?.id){
       $('modal').close();
       say('El bloque cambió. Vuelve a abrir el motivo.');
       return;
     }
     onConfirm(reason);
   };
+}
+function saveReason(reason){
+  data.reason=reason;
+  if(data.timer)data.timer.reason=reason;
+  save();
 }
 function openMedina(){
   const task=data.timer||data;
@@ -176,9 +181,7 @@ function openMedina(){
   $('returnGoal').textContent=task.goal?'Tu meta · '+task.goal:'';
   $('backToTask').onclick=()=> $('modal').close();
   $('editReason').onclick=()=>askReason('Mi motivo','Guardar motivo',reason=>{
-    data.reason=reason;
-    if(data.timer)data.timer.reason=reason;
-    save();
+    saveReason(reason);
     openMedina();
   });
   $('getHint').onclick=()=>{

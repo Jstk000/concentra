@@ -1,6 +1,21 @@
 'use strict';
 (()=>{
  let job=Promise.resolve(),timer=0,readyToken='',working=false;
+ let reasonAfterLogin='',reasonProfileLoaded=false;
+ document.addEventListener('study-sign-in',()=>{
+   reasonAfterLogin=accountToken();
+   reasonProfileLoaded=false;
+ });
+ function offerLoginReason(){
+   if(!reasonProfileLoaded||!reasonAfterLogin||reasonAfterLogin!==accountToken()||$('modal').open)return;
+   reasonAfterLogin='';
+   askReason('Tu motivo para estudiar','Guardar motivo',reason=>{
+     saveReason(reason);
+     $('modal').close();
+     say('Motivo guardado.');
+   },false);
+ }
+ $('modal').addEventListener('close',offerLoginReason);
  const status=text=>{$('profileState').textContent=text;$('syncStudy').hidden=!accountToken();};
  const guestKey='concentra.datos.invitado';
  function equal(a,b){
@@ -85,7 +100,9 @@
        }
        if(!equal(latest,data)){load();mirrorStudy();refresh();document.dispatchEvent(new Event('profile-loaded'));}
        if(!equal(data,saved))continue;
-       status('Guardado en tu cuenta');showImport();return;
+       status('Guardado en tu cuenta');showImport();
+       if(reasonAfterLogin===token){reasonProfileLoaded=true;offerLoginReason();}
+       return;
      }
      throw Error('Hay cambios pendientes. Vuelve a sincronizar.');
    }catch(err){if(token===accountToken())status('Sin sincronizar · '+(navigator.onLine?err.message:'Sin conexión'));throw err;}

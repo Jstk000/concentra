@@ -19,7 +19,10 @@ function forgetSession(token){
  deviceStore.removeItem(legacySessionKey);deviceStore.removeItem(sessionKey);setName('');accountChanged();
 }
 async function finishAccount(result){
- storeSession({token:result.token,name:result.name});setName(result.name);$('modal').close();accountChanged();say('Sesión iniciada.');
+ storeSession({token:result.token,name:result.name});
+ setName(result.name);$('modal').close();
+ document.dispatchEvent(new Event('study-sign-in'));
+ accountChanged();say('Sesión iniciada.');
 }
 function accountForm(register=false){
  if(accountToken()){
