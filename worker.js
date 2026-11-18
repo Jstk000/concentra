@@ -1,9 +1,13 @@
 const headers={'Cache-Control':'private, no-store','Referrer-Policy':'no-referrer','X-Robots-Tag':'noindex, nofollow'};
 function json(obj,status=200){return Response.json(obj,{status,headers});}
 async function api(request,env,url){
-  const uid=request.headers.get('oai-authenticated-user-id');
-  if(!uid)return json({state:'anonymous'},401);
   const db=env.DB, path=url.pathname;
+  const account=request.headers.get('oai-authenticated-user-id');
+  const key=request.headers.get('x-concentra-key');
+  const hash=key&&/^[a-f0-9]{64}$/.test(key)?await digest('profile:'+key):null;
+  const linked=hash?await db.prepare('SELECT user FROM member_keys WHERE hash=?').bind(hash).first():null;
+  const uid=key?(linked?.user||(hash?'personal:'+hash:null)):account;
+  if(!uid)return json({state:'anonymous'},401);
   const member=await db.prepare('SELECT name FROM members WHERE user=?').bind(uid).first();
   if(request.method==='GET'){
     if(path!=='/api/grupo')return json({},404);
@@ -14,6 +18,11 @@ async function api(request,env,url){
   if(request.method!=='POST'||request.headers.get('origin')!==url.origin||!request.headers.get('content-type')?.startsWith('application/json'))return json({},403);
   let body;
   try{body=await request.json();if(!body||typeof body!=='object')return json({},400);}catch{return json({},400);}
+  if(path==='/api/clave'&&account&&!key&&member){
+    if(!/^[a-f0-9]{64}$/.test(body.key))return json({},400);
+    await db.prepare('INSERT INTO member_keys(user,hash) VALUES (?,?) ON CONFLICT(user) DO UPDATE SET hash=excluded.hash').bind(account,await digest('profile:'+body.key)).run();
+    return json({ok:true});
+  }
   if(path==='/api/unirse'){
     if(!env.GRUPO_INVITACION||body.invite!==env.GRUPO_INVITACION)return json({message:'El enlace de invitación no es válido.'},403);
     const name=typeof body.name==='string'?body.name.trim():'';
@@ -34,10 +43,11 @@ async function api(request,env,url){
 }
 export default {async fetch(request,env){
   const url=new URL(request.url);
+  if(url.pathname==='/api/calendario'||url.pathname.startsWith('/horarios/'))return calendar(request,env,url);
   if(url.pathname.startsWith('/api/')){try{return await api(request,env,url);}catch{return json({message:'El muro no está disponible en este momento. Vuelve a intentar.'},503);}}
   if(url.pathname==='/robots.txt')return new Response('User-agent: *\nDisallow: /',{headers});
   if(url.pathname==='/bloqueador.zip')return new Response(Uint8Array.from(atob(assets[url.pathname]),c=>c.charCodeAt(0)),{headers:{...headers,'Content-Type':'application/zip','Content-Disposition':'attachment; filename="Concentra-bloqueo.zip"'}});
   if(!Object.hasOwn(assets,url.pathname))return new Response('Página no encontrada',{status:404,headers});
-  const types={'/':'text/html; charset=utf-8','/style.css':'text/css; charset=utf-8','/app.js':'application/javascript','/grupo.js':'application/javascript','/icon.png':'image/png','/app.webmanifest':'application/manifest+json'};
+  const types={'/':'text/html; charset=utf-8','/style.css':'text/css; charset=utf-8','/app.js':'application/javascript','/horario.js':'application/javascript','/grupo.js':'application/javascript','/icon.png':'image/png','/app.webmanifest':'application/manifest+json'};
   const value=assets[url.pathname];return new Response(url.pathname==='/icon.png'?Uint8Array.from(atob(value),c=>c.charCodeAt(0)):value,{headers:{...headers,'Content-Type':types[url.pathname]}});
 }};

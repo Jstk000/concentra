@@ -48,8 +48,6 @@ function go() {
   if(name==='hoy') paint();
 }
 window.addEventListener('hashchange',go);
-$('day').innerHTML=[1,2,3,4,5,6,0].map(i=>'<option value="'+i+'">'+days[i][0].toUpperCase()+days[i].slice(1)+'</option>').join('');
-$('day').value=new Date().getDay();
 $('subject').oninput=()=>{data.subject=$('subject').value; save();};
 $('goal').oninput=()=>{data.goal=$('goal').value; save();};
 const defaultReason='Quiero terminar esto para después dedicarme tranquilo a lo otro.';
@@ -117,14 +115,6 @@ $('stop').onclick=()=>{
   $('discard').onclick=()=>{if(data.timer?.id===id){settle();data.timer=null;save();refresh();}$('modal').close();};
 };
 function mins(time){const [h,m]=time.split(':').map(Number);return h*60+m;}
-$('classForm').onsubmit=e=>{
-  e.preventDefault();
-  const name=$('className').value.trim(),day=Number($('day').value),from=$('from').value,until=$('until').value;
-  if(!name){say('Escribe el nombre del ramo.');return;}
-  if(until<=from){say('La hora de salida debe ser posterior a la entrada.');return;}
-  if(data.classes.some(c=>c.day===day&&from<c.until&&until>c.from)){say('Ya tienes una clase en ese tramo. Revisa las horas.');return;}
-  data.classes.push({id:freshId(),name,day,from,until});save();$('className').value='';schedule();say('Clase agregada a tu semana.');
-};
 function schedule(){
   const sorted=[...data.classes].sort((a,b)=>(a.day+6)%7-(b.day+6)%7||a.from.localeCompare(b.from));
   $('classes').innerHTML=sorted.length?sorted.map(c=>'<div class="row item"><div><small>'+days[c.day]+' · '+c.from+'–'+c.until+'</small><b>'+esc(c.name)+'</b></div><button class="del" data-remove="'+esc(c.id)+'" aria-label="Quitar '+esc(c.name)+'">Quitar</button></div>').join(''):'<p>Aquí aparecerán tus clases de la semana.</p>';
@@ -141,7 +131,7 @@ function schedule(){
   } else if(sorted.length)note='Tienes libre el resto del día según tu horario.';
   $('suggestion').textContent=note;
 }
-$('classes').onclick=e=>{const id=e.target.closest('[data-remove]')?.dataset.remove;if(!id)return;data.classes=data.classes.filter(c=>c.id!==id);save();schedule();};
+$('classes').onclick=e=>{const id=e.target.closest('[data-remove]')?.dataset.remove;if(!id)return;data.classes=data.classes.filter(c=>c.id!==id);save();schedule();document.dispatchEvent(new Event("concentra-horario"));};
 function progress(){
   const byDay=new Map();
   data.history.forEach(h=>{const k=dayKey(h.at),v=byDay.get(k)||{minutes:0,count:0};v.minutes+=h.minutes;v.count++;byDay.set(k,v);});

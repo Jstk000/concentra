@@ -2,14 +2,18 @@
 (()=>{
   let invitation='',memberLink='',requestNumber=0,draftId=null;
   const key='concentra.grupo.invitacion';
+  const profileKey='concentra.perfil.clave';
+  let personal=localStorage.getItem(profileKey)||'';
+  const newKey=()=>Array.from(crypto.getRandomValues(new Uint8Array(32)),v=>v.toString(16).padStart(2,'0')).join('');
   function readInvite(){
     if(location.hash.startsWith('#invitar=')){
       invitation=location.hash.slice(9);
       try{sessionStorage.setItem(key,invitation);}catch{}
     }else if(!invitation){try{invitation=sessionStorage.getItem(key)||'';}catch{}}
   }
-  async function request(path,body){
+  async function request(path,body,credential=personal){
     const options=body?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}:{cache:'no-store'};
+    if(credential)options.headers={...options.headers,'x-concentra-key':credential};
     const response=await fetch('/api/'+path,options);
     const result=await response.json();
     if(!response.ok&&!(response.status===401&&result.state==='anonymous'))throw Error(result.message||'No se pudo completar la acción. Vuelve a intentar.');
@@ -33,11 +37,12 @@
         // Including the original fragment in the return path also works across a fresh tab.
         const dest=invitation?'/#invitar='+encodeURIComponent(invitation):'/#grupo';
         $('login').href='/signin-with-chatgpt?return_to='+encodeURIComponent(dest);
-        enter(invitation?'Te invitaron a Concentra':'Entrar al grupo',invitation?'Entra con tu cuenta y elige el nombre que verán tus amigos.':'Si ya eres parte del grupo, entra con tu cuenta. Para unirte por primera vez, abre la invitación de un amigo.','login');
+        enter(invitation?'Te invitaron a Concentra':'Entrar al grupo',invitation?'Elige tu apodo para crear un perfil con clave personal o continúa con ChatGPT.':'Usa tu clave personal o entra con ChatGPT. Para crear un perfil, abre una invitación.','login');
+        $('joinForm').hidden=!invitation;
       }else if(s.state==='guest'){
         enter(invitation?'Únete al grupo de estudio':'Pide una invitación',invitation?'Quienes se unan podrán leer tus publicaciones y compartir las suyas.':'Abre el enlace de invitación que te envió un amigo.',invitation?'joinForm':'');
       }else if(s.state==='member'){
-        $('entry').hidden=true;$('room').hidden=false;showPosts(s.posts);
+        $('entry').hidden=true;$('room').hidden=false;showPosts(s.posts);$('leaveDevice').hidden=!personal;
         memberLink=new URL('/',location.href).href+'#invitar='+s.invite;
         invitation='';try{sessionStorage.removeItem(key);}catch{}
         if(location.hash.startsWith('#invitar=')){history.replaceState(null,'','#grupo');go();}
@@ -45,8 +50,25 @@
     }catch(e){if(seq===requestNumber)enter('Cargar el grupo',e.message,'retry');}
   }
   $('joinForm').onsubmit=async e=>{e.preventDefault();const b=e.submitter;b.disabled=true;try{
-    await request('unirse',{name:$('alias').value,invite:invitation});await loadRoom();
+    const credential=!$('login').hidden&&!personal?newKey():personal;
+    await request('unirse',{name:$('alias').value,invite:invitation},credential);
+    if(credential&&!personal){personal=credential;localStorage.setItem(profileKey,personal);showKey();}
+    await loadRoom();
   }catch(err){$('entryInfo').textContent=err.message;}finally{b.disabled=false;}};
+  function showKey(){
+    dialog('Mi clave personal','<p>Guárdala en tu gestor de contraseñas. Quien tenga esta clave puede entrar a tu perfil desde otro dispositivo.</p><label for="keyValue">Clave de acceso</label><textarea readonly id="keyValue"></textarea><button class="solid" id="copyKey">Copiar clave</button>');
+    $('keyValue').value=personal;$('copyKey').onclick=async()=>{try{await navigator.clipboard.writeText(personal);say('Clave copiada.');}catch{$('keyValue').select();}};
+  }
+  $('manageKey').onclick=async()=>{
+    if(personal){showKey();return;}
+    dialog('Crear clave personal','<p>Podrás entrar al mismo perfil sin ChatGPT. Si ya tenías otra clave, se reemplazará.</p><button id="createKey" class="solid">Crear mi clave</button>');
+    $('createKey').onclick=async e=>{e.target.disabled=true;try{const k=newKey();await request('clave',{key:k});personal=k;localStorage.setItem(profileKey,k);showKey();}catch(err){say(err.message);e.target.disabled=false;}};
+  };
+  $('useKey').onclick=()=>{
+    dialog('Entrar con mi clave','<form id="restoreForm"><label for="restoreKey">Clave personal de Concentra</label><input id="restoreKey" type="password" autocomplete="current-password" required><button class="solid">Entrar</button><p role="status" id="restoreInfo"></p></form>');
+    $('restoreForm').onsubmit=async e=>{e.preventDefault();const v=$('restoreKey').value.trim();if(!/^[a-f0-9]{64}$/.test(v)){$('restoreInfo').textContent='Revisa que hayas copiado la clave completa.';return;}try{const s=await request('grupo',null,v);if(s.state!=='member')throw Error('No encontramos un perfil con esa clave.');personal=v;localStorage.setItem(profileKey,v);$('modal').close();await loadRoom();}catch(err){$('restoreInfo').textContent=err.message;}};
+  };
+  $('leaveDevice').onclick=()=>{personal='';localStorage.removeItem(profileKey);loadRoom();};
   $('useRoutine').onclick=()=>{
     const t=data.timer||data;
     $('kind').value='Rutina';$('postText').value=[t.subject||'Mi bloque de estudio',t.minutes+' min',t.goal||'Estudiar una tarea a la vez'].join(' · ');draftId=null;$('postText').focus();

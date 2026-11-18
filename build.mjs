@@ -7,4 +7,5 @@ for(const [route,name] of Object.entries(files)){
   assets[route]=name.endsWith('.png')?bytes.toString('base64'):bytes.toString('utf8');
 }
 await fs.mkdir('dist/server',{recursive:true});
-await fs.writeFile('dist/server/index.js','const assets='+JSON.stringify(assets)+';\n'+await fs.readFile('worker.js','utf8'));
+assets['/horario.js']=await fs.readFile('docs/horario.js','utf8');
+await fs.writeFile('dist/server/index.js','const assets='+JSON.stringify(assets)+';\n'+await fs.readFile('calendar-server.js','utf8')+'\n'+await fs.readFile('worker.js','utf8'));
