@@ -82,6 +82,8 @@ function normalizeStudy(saved){
   if(classes.length!==data.classes?.length||history.length!==data.history?.length)$('dataWarn').hidden=false;
   data.classes=classes;data.history=history;
   if(data.timer&&!(validBlock(data.timer)&&(Number.isFinite(data.timer.end)||(data.timer.end===null&&Number.isFinite(data.timer.left)&&data.timer.left>=0)))){data.timer=null;$('dataWarn').hidden=false;}
+  if(data.timer&&typeof data.timer.reason!=='string')delete data.timer.reason;
+  if(typeof data.reason!=='string')delete data.reason;
   if(!Array.isArray(data.blockSites))delete data.blockSites;
   return data;
 }
@@ -138,17 +140,47 @@ window.addEventListener('hashchange',go);
 $('subject').oninput=()=>{data.subject=$('subject').value; save();};
 $('goal').oninput=()=>{data.goal=$('goal').value; save();};
 const defaultReason='Quiero terminar esto para después dedicarme tranquilo a lo otro.';
+let reasonOwner;
+document.addEventListener('account-change',()=>{
+  if(reasonOwner===accountToken()||!($('myReason')||$('reasonForm')))return;
+  $('modal').close();
+  $('modalBody').replaceChildren();
+});
+function currentReason(){
+  return data.timer?.reason||data.reason||defaultReason;
+}
+function askReason(title,submitLabel,onConfirm){
+  const token=accountToken(),scope=studyScope,timerId=data.timer?.id;
+  reasonOwner=token;
+  dialog(title,'<form id="reasonForm"><label for="reasonText">¿Qué quieres recordarte si te distraes?</label><textarea id="reasonText" required maxlength="240" rows="3"></textarea><button class="solid" type="submit">'+submitLabel+'</button></form>');
+  const input=$('reasonText');
+  input.value=currentReason();
+  input.oninput=()=>input.setCustomValidity('');
+  $('reasonForm').onsubmit=event=>{
+    event.preventDefault();
+    const reason=input.value.trim();
+    if(!reason){input.setCustomValidity('Escribe un motivo para este bloque.');input.reportValidity();return;}
+    if(token!==accountToken()||scope!==studyScope||timerId!==data.timer?.id){
+      $('modal').close();
+      say('El bloque cambió. Vuelve a abrir el motivo.');
+      return;
+    }
+    onConfirm(reason);
+  };
+}
 function openMedina(){
   const task=data.timer||data;
+  reasonOwner=accountToken();
   dialog('Medina','<p class="eyebrow">Mi motivo</p><blockquote id="myReason"></blockquote><button class="link" id="editReason">Editar mi motivo</button><p id="returnGoal"></p><h3>Ya. ¿En qué paso quedaste?</h3><div class="actions"><button class="solid" id="backToTask">Sé cómo seguir</button><button class="link" id="getHint">Me trabé</button></div>');
-  $('myReason').textContent=data.reason||defaultReason;
+  $('myReason').textContent=currentReason();
   $('returnGoal').textContent=task.goal?'Tu meta · '+task.goal:'';
   $('backToTask').onclick=()=> $('modal').close();
-  $('editReason').onclick=()=>{
-    dialog('Mi motivo','<form id="reasonForm"><label for="reasonText">¿Qué quieres recordarte cuando te distraigas?</label><textarea id="reasonText" required maxlength="240" rows="3"></textarea><button class="solid">Guardar motivo</button></form>');
-    $('reasonText').value=data.reason||defaultReason;
-    $('reasonForm').onsubmit=e=>{e.preventDefault();const value=$('reasonText').value.trim();if(!value){$('reasonText').focus();return;}data.reason=value;save();openMedina();};
-  };
+  $('editReason').onclick=()=>askReason('Mi motivo','Guardar motivo',reason=>{
+    data.reason=reason;
+    if(data.timer)data.timer.reason=reason;
+    save();
+    openMedina();
+  });
   $('getHint').onclick=()=>{
     const subject=(task.subject+' '+task.goal).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
     const problem=/fisica|calculo|algebra|matematica|ecuacion|integral|deriva/.test(subject);
@@ -190,8 +222,16 @@ function renderTimer(){
 $('start').onclick=()=>{
   if(settle()){refresh();say('¡Bloque completado! Tu avance quedó registrado.');return;}
   const t=data.timer;
-  if(!t) data.timer={id:freshId(),subject:data.subject.trim(),goal:data.goal.trim(),minutes:data.minutes,end:Date.now()+data.minutes*60000,left:null};
-  else if(t.end===null){t.end=Date.now()+t.left;t.left=null;}
+  if(!t){
+    askReason('Tu motivo para este bloque','Empezar bloque',reason=>{
+      data.reason=reason;
+      data.timer={id:freshId(),subject:data.subject.trim(),goal:data.goal.trim(),reason,minutes:data.minutes,end:Date.now()+data.minutes*60000,left:null};
+      save();renderTimer();schedule();
+      $('modal').close();
+    });
+    return;
+  }
+  if(t.end===null){t.end=Date.now()+t.left;t.left=null;}
   else {t.left=remaining(t);t.end=null;}
   save();renderTimer();schedule();
 };

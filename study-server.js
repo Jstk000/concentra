@@ -12,6 +12,7 @@ async function studyProfile(request,db){
  let body;try{body=JSON.parse(raw);}catch{return json({},400);}
  const s=body?.state,revision=body?.revision;
  const str=(v,n)=>typeof v==='string'&&v.length<=n;
+ const validReason=value=>value===undefined||str(value,240);
  const validId=v=>typeof v==='string'&&/^[-a-z0-9]{1,80}$/i.test(v);
  const minutes=v=>Number.isInteger(v)&&v>=1&&v<=180;
  const time=v=>typeof v==='string'&&/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(v);
@@ -21,8 +22,8 @@ async function studyProfile(request,db){
  if(!Number.isSafeInteger(revision)||revision<0||!s||!str(s.subject,60)||!str(s.goal,160)||!minutes(s.minutes)||
    !validList(s.classes,c=>c&&validId(c.id)&&str(c.name,60)&&Number.isInteger(c.day)&&c.day>=0&&c.day<=6&&time(c.from)&&time(c.until)&&c.until>c.from)||
    !validList(s.history,h=>block(h)&&timestamp(h.at))||
-   !(s.timer===null||block(s.timer)&&(timestamp(s.timer.end)||s.timer.end===null&&Number.isFinite(s.timer.left)&&s.timer.left>=0&&s.timer.left<=s.timer.minutes*60000))||
-   s.reason!==undefined&&!str(s.reason,240)||s.blockSites!==undefined&&(!Array.isArray(s.blockSites)||!s.blockSites.every(d=>str(d,80))))return json({message:'Revisa los datos del horario y de los bloques.'},400);
+   !(s.timer===null||block(s.timer)&&validReason(s.timer.reason)&&(timestamp(s.timer.end)||s.timer.end===null&&Number.isFinite(s.timer.left)&&s.timer.left>=0&&s.timer.left<=s.timer.minutes*60000))||
+   !validReason(s.reason)||s.blockSites!==undefined&&(!Array.isArray(s.blockSites)||!s.blockSites.every(d=>str(d,80))))return json({message:'Revisa los datos del horario y de los bloques.'},400);
  const safe={subject:s.subject,goal:s.goal,minutes:s.minutes,classes:s.classes,history:s.history,timer:s.timer,reason:s.reason,blockSites:s.blockSites};
  if(s.calendarLink!=null){
    const link=s.calendarLink;
