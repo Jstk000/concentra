@@ -1,0 +1,43 @@
+const headers={'Cache-Control':'private, no-store','Referrer-Policy':'no-referrer','X-Robots-Tag':'noindex, nofollow'};
+function json(obj,status=200){return Response.json(obj,{status,headers});}
+async function api(request,env,url){
+  const uid=request.headers.get('oai-authenticated-user-id');
+  if(!uid)return json({state:'anonymous'},401);
+  const db=env.DB, path=url.pathname;
+  const member=await db.prepare('SELECT name FROM members WHERE user=?').bind(uid).first();
+  if(request.method==='GET'){
+    if(path!=='/api/grupo')return json({},404);
+    if(!member)return json({state:'guest'});
+    const {results}=await db.prepare('SELECT p.id, p.kind, p.body, p.created, m.name, (p.user=?) AS mine FROM posts p JOIN members m ON p.user=m.user ORDER BY p.created DESC,p.id DESC LIMIT 60').bind(uid).all();
+    return json({state:'member',name:member.name,posts:results,invite:env.GRUPO_INVITACION});
+  }
+  if(request.method!=='POST'||request.headers.get('origin')!==url.origin||!request.headers.get('content-type')?.startsWith('application/json'))return json({},403);
+  let body;
+  try{body=await request.json();if(!body||typeof body!=='object')return json({},400);}catch{return json({},400);}
+  if(path==='/api/unirse'){
+    if(!env.GRUPO_INVITACION||body.invite!==env.GRUPO_INVITACION)return json({message:'El enlace de invitación no es válido.'},403);
+    const name=typeof body.name==='string'?body.name.trim():'';
+    if(!name||name.length>40)return json({message:'Usa un nombre de hasta 40 caracteres.'},400);
+    await db.prepare('INSERT INTO members (user,name) VALUES (?,?) ON CONFLICT(user) DO NOTHING').bind(uid,name).run();
+    return json({ok:true});
+  }
+  if(!member)return json({},403);
+  if(typeof body.id!=='string'||!/^[0-9a-f-]{36}$/i.test(body.id))return json({},400);
+  if(path==='/api/publicar'){
+    const msg=typeof body.text==='string'?body.text.trim():'';
+    if(!msg||msg.length>600||!['Meta','Rutina','Logro'].includes(body.kind))return json({message:'Escribe entre 1 y 600 caracteres.'},400);
+    await db.prepare('INSERT INTO posts (id,user,body,kind,created) VALUES (?,?,?,?,?) ON CONFLICT(id) DO NOTHING').bind(body.id,uid,msg,body.kind,Date.now()).run();
+  }else if(path==='/api/quitar'){
+    await db.prepare('DELETE FROM posts WHERE id=? AND user=?').bind(body.id,uid).run();
+  }else return json({},404);
+  return json({ok:true});
+}
+export default {async fetch(request,env){
+  const url=new URL(request.url);
+  if(url.pathname.startsWith('/api/')){try{return await api(request,env,url);}catch{return json({message:'El muro no está disponible en este momento. Vuelve a intentar.'},503);}}
+  if(url.pathname==='/robots.txt')return new Response('User-agent: *\nDisallow: /',{headers});
+  if(url.pathname==='/bloqueador.zip')return new Response(Uint8Array.from(atob(assets[url.pathname]),c=>c.charCodeAt(0)),{headers:{...headers,'Content-Type':'application/zip','Content-Disposition':'attachment; filename="Concentra-bloqueo.zip"'}});
+  if(!Object.hasOwn(assets,url.pathname))return new Response('Página no encontrada',{status:404,headers});
+  const types={'/':'text/html; charset=utf-8','/style.css':'text/css; charset=utf-8','/app.js':'application/javascript','/grupo.js':'application/javascript','/icon.png':'image/png','/app.webmanifest':'application/manifest+json'};
+  const value=assets[url.pathname];return new Response(url.pathname==='/icon.png'?Uint8Array.from(atob(value),c=>c.charCodeAt(0)):value,{headers:{...headers,'Content-Type':types[url.pathname]}});
+}};

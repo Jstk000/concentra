@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="es-CL">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#173e37"><meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="description" content="Organiza tus bloques de estudio entre clases y sigue tu progreso.">
+<title>Concentra · Estudio digital</title><link rel="icon" href="./icon.png"><link rel="apple-touch-icon" href="./icon.png">
+<link rel="manifest" href="./app.webmanifest"><link rel="stylesheet" href="./style.css"><script src="./app.js" defer></script>
+<meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer"><script src="./grupo.js" defer></script></head>
+<body>
+<header><div class="bar"><a href="#hoy" class="brand"><i class="brandmark" aria-hidden="true">◒</i>Concentra</a><nav aria-label="Navegación principal"><a href="#hoy">Hoy</a><a href="#horario">Mi horario</a><a href="#avance">Mi avance</a><a href="#grupo">Grupo</a></nav><button id="help" class="help" aria-label="Guía para iPhone">?</button></div></header>
+<main>
+<p class="eyebrow date" id="date"></p>
+<section id="hoy" class="page">
+<h1>Mi estudio<span>.</span></h1>
+<div class="dashboard"><article class="timer"><canvas id="land" aria-hidden="true"></canvas><div class="timerbody">
+<p class="eyebrow timerlabel"><i></i><span id="mode">Sesión de enfoque</span></p>
+<h2 id="sessionTitle">Tiempo de estudiar</h2><div class="digits" id="digits" role="timer">25:00</div>
+<div class="presets" id="presets" aria-label="Duración del bloque"><button data-min="15">15 min</button><button data-min="25">25 min</button><button data-min="50">50 min</button><button id="custom">Otra</button></div>
+<p id="runningNote" hidden></p><div class="actions"><button id="start" class="primary">▶　Iniciar sesión</button><button id="stop" hidden>Terminar</button></div>
+<button id="medina" class="medina-link">Me estoy distrayendo</button>
+<button id="proteger" class="medina-link">Bloqueo y avisos</button>
+</div></article>
+<aside><section class="card objective"><p class="eyebrow"><b class="dot"></b> Mi objetivo</p><h2>¿Qué vas a estudiar?</h2><label for="subject">Ramo</label><input id="subject" maxlength="60" placeholder="Ej. Cálculo II" list="subjects"><datalist id="subjects"></datalist><label for="goal">Meta de la sesión</label><textarea id="goal" maxlength="160" rows="2" placeholder="Ej. Resolver tres integrales"></textarea></section>
+<div class="scheduleHint"><div class="row"><b>Entre clases</b><a href="#horario" aria-label="Ver mi horario">↗</a></div><p id="suggestion"></p><button id="fit" hidden></button></div></aside></div>
+<div class="sectionhead"><h2>Tu día en cifras</h2><a href="#avance">Ver avance ↗</a></div>
+<div class="stats"><div><small>Tiempo de enfoque</small><strong id="todayMin">0 <em>min</em></strong></div><div><small>Bloques completados</small><strong id="todayCount">0</strong></div><div><small>Racha de estudio</small><strong id="streak">0 <em>días</em></strong></div></div>
+</section>
+<section id="horario" class="page" hidden><h1>Mi horario<span>.</span></h1><div class="two"><section class="card"><h2>Agregar una clase</h2><p>Se repetirá cada semana y servirá para calcular tus ventanas de estudio.</p><form id="classForm"><label for="className">Ramo</label><input id="className" maxlength="60" required placeholder="Ej. Álgebra"><label for="day">Día</label><select id="day"></select><div class="pair"><div><label for="from">Desde</label><input type="time" id="from" value="09:00" required></div><div><label for="until">Hasta</label><input type="time" id="until" value="10:30" required></div></div><button class="solid">Guardar clase</button></form></section><section class="card"><h2>Mi semana</h2><div id="classes"></div></section></div></section>
+<section id="avance" class="page" hidden><h1>Mi avance<span>.</span></h1><div class="two"><div class="card"><p class="eyebrow">Minutos de enfoque</p><h2>Últimos siete días</h2><div id="chart" class="chart"></div><div class="row"><b id="weekTotal"></b><button id="share" class="link">Compartir rutina ↗</button></div></div><div class="card"><p class="eyebrow">Recompensas</p><h2>Mis logros</h2><div id="badges"></div></div></div><div class="sectionhead"><h2>Sesiones recientes</h2></div><div class="card" id="history"></div></section>
+<section id="grupo" class="page" hidden><h1>Grupo de estudio<span>.</span></h1>
+<div id="entry" class="card"><h2 id="entryTitle">Tu grupo</h2><p id="entryInfo" role="status">Cargando…</p><a class="solid groupAction" hidden id="login" href="/signin-with-chatgpt?return_to=%2F%23grupo" target="_top">Continuar con ChatGPT</a>
+<form hidden id="joinForm"><label for="alias">¿Cómo te conocen tus amigos?</label><input id="alias" required maxlength="40" autocomplete="nickname" placeholder="Tu nombre o apodo"><button class="solid">Unirme al grupo</button></form><button id="retry" class="link" hidden>Volver a intentar</button></div>
+<div id="room" class="two" hidden><section class="card"><p class="eyebrow">Compartir con el grupo</p><h2>¿En qué estás?</h2>
+<form id="postForm"><label for="kind">Tipo de publicación</label><select id="kind"><option>Meta</option><option>Rutina</option><option>Logro</option></select><label for="postText">Mensaje</label><textarea required maxlength="600" rows="4" id="postText" placeholder="Ej. Esta tarde quiero terminar la guía de álgebra. ¿Quién se suma?"></textarea><button id="useRoutine" type="button" class="link">Usar mi bloque de estudio</button><div><button class="solid">Publicar en el grupo</button></div></form>
+<p id="groupStatus" role="status"></p><hr><button id="inviteFriends" class="link">Compartir invitación ↗</button></section><section class="card"><div class="row"><h2>Muro del grupo</h2><button type="button" id="reloadFeed" class="link">Actualizar</button></div><div id="feed"></div></section></div></section>
+<p id="storageWarn" role="alert" hidden>El navegador impide guardar cambios. Esta sesión solo se conservará mientras la página esté abierta.</p>
+</main><footer>Concentra <span>Estudio digital inteligente</span></footer>
+<dialog id="modal"><div class="row"><h2 id="modalTitle"></h2><button class="help" id="close" aria-label="Cerrar">×</button></div><div id="modalBody"></div></dialog><div role="status" id="toast"></div>
+</body></html>

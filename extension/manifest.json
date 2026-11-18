@@ -1,0 +1,46 @@
+{
+  "manifest_version": 3,
+  "name": "Concentra · Bloqueo de estudio",
+  "version": "1.0.0",
+  "description": "Bloquea los sitios elegidos y sus avisos durante tu sesión de Concentra.",
+  "permissions": [
+    "alarms",
+    "storage",
+    "declarativeNetRequest",
+    "contentSettings"
+  ],
+  "host_permissions": [
+    "*://*.instagram.com/*",
+    "*://*.tiktok.com/*",
+    "*://*.youtube.com/*",
+    "*://*.reddit.com/*",
+    "*://*.twitch.tv/*",
+    "*://*.x.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://jstk000.github.io/concentra/*"
+      ],
+      "js": [
+        "puente.js"
+      ]
+    },
+    {
+      "matches": [
+        "*://*.instagram.com/*",
+        "*://*.tiktok.com/*",
+        "*://*.youtube.com/*",
+        "*://*.reddit.com/*",
+        "*://*.twitch.tv/*",
+        "*://*.x.com/*"
+      ],
+      "js": [
+        "pausa.js"
+      ]
+    }
+  ]
+}

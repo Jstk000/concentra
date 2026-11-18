@@ -1,0 +1,31 @@
+const allowed=["instagram.com","tiktok.com","youtube.com","reddit.com","twitch.tv","x.com"];
+const origin='https://jstk000.github.io';
+let last='';
+let queue=Promise.resolve();
+function enqueue(fn){const run=queue.then(fn);queue=run.catch(()=>{});return run;}
+async function apply(end,sites){
+  const active=Number.isFinite(end)&&end>Date.now()&&end<=Date.now()+181*60000;
+  const chosen=active?allowed.filter(d=>sites.includes(d)):[];
+  const state=chosen.length?'activo':'listo';
+  const config={end:chosen.length?end:0,sites:chosen};
+  const signature=JSON.stringify(config);
+  if(signature===last)return {state};
+  last='';
+  // Schedule cleanup before applying restrictions so it survives worker suspension.
+  if(config.end)await chrome.alarms.create('fin',{when:config.end});
+  const old=await chrome.declarativeNetRequest.getDynamicRules();
+  await chrome.declarativeNetRequest.updateDynamicRules({removeRuleIds:old.map(r=>r.id),addRules:chosen.map((d,i)=>({id:i+1,priority:1,action:{type:'block'},condition:{requestDomains:[d],resourceTypes:['main_frame']}}))});
+  await chrome.contentSettings.notifications.clear({});
+  for(const d of chosen)await chrome.contentSettings.notifications.set({primaryPattern:'https://*.'+d+'/*',setting:'block'});
+  await chrome.storage.local.set({config});
+  if(!config.end)await chrome.alarms.clear('fin');
+  last=signature;return {state};
+}
+chrome.runtime.onMessage.addListener((m,sender,reply)=>{
+  if(sender.origin!==origin||!sender.url?.startsWith(origin+'/concentra/')||sender.frameId!==0||!Array.isArray(m.sites))return;
+  enqueue(()=>apply(m.end,m.sites)).then(reply,()=>reply({state:'error'}));return true;
+});
+function restore(){return enqueue(async()=>{const {config}=await chrome.storage.local.get('config');return apply(config?.end||0,config?.sites||[]);});}
+chrome.runtime.onStartup.addListener(restore);
+chrome.runtime.onInstalled.addListener(restore);
+chrome.alarms.onAlarm.addListener(a=>{if(a.name==='fin')restore();});
