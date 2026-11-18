@@ -24,6 +24,7 @@ async function limited(db,tag){
 }
 async function accountApi(request,env,url){
  const action=url.pathname.split('/').pop(),db=env.DB;
+ if(action==='estudio')return studyProfile(request,db);
  if(action==='config'&&request.method==='GET')return json({client:env.GOOGLE_CLIENT_ID||null});
  if(action==='me'&&request.method==='GET'){const a=await session(request,db);return json({name:a?.name||null});}
  if(request.method!=='POST'||!request.headers.get('content-type')?.startsWith('application/json'))return json({},405);

@@ -9,3 +9,4 @@ dialog details{margin:16px 0;padding:12px;background:#f2f3e8;border-radius:10px}
 #accountButton{margin-left:auto;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#accountButton+.help{margin-left:0}@media(max-width:560px){.bar{grid-template-columns:minmax(0,1fr) auto auto}.bar #accountButton{grid-row:1;grid-column:2;margin-right:10px}.bar .help{grid-column:3}}
 
 #modalNotice:empty{display:none}#modalNotice{color:#214e43;font-size:14px;font-weight:600}#modalBody .groupAction{white-space:normal}#login,#accountButton{min-height:44px}
+.profileSync{display:flex;align-items:center;flex-wrap:wrap;gap:6px 16px;margin-bottom:16px}.profileSync:has(#syncStudy[hidden]):has(#importStudy[hidden]){margin-bottom:10px}

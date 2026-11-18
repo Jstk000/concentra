@@ -5,11 +5,12 @@
 <meta name="theme-color" content="#173e37"><meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="description" content="Organiza tus bloques de estudio entre clases y sigue tu progreso.">
 <title>Concentra · Estudio digital</title><link rel="icon" href="./icon.png"><link rel="apple-touch-icon" href="./icon.png">
-<link rel="manifest" href="./app.webmanifest"><link rel="stylesheet" href="./style.css"><script src="./app.js" defer></script>
-<meta name="robots" content="noindex,nofollow"><meta name="referrer" content="strict-origin-when-cross-origin"><script src="./cuenta.js" defer></script><script src="./grupo.js" defer></script><script src="./horario.js" defer></script></head>
+<link rel="manifest" href="./app.webmanifest"><link rel="stylesheet" href="./style.css?v=perfil1"><script src="./app.js?v=perfil1" defer></script>
+<meta name="robots" content="noindex,nofollow"><meta name="referrer" content="strict-origin-when-cross-origin"><script src="./cuenta.js?v=perfil1" defer></script><script src="./grupo.js?v=perfil1" defer></script><script src="./horario.js?v=perfil1" defer></script><script src="./perfil.js?v=perfil1" defer></script></head>
 <body>
 <header><div class="bar"><a href="#hoy" class="brand"><i class="brandmark" aria-hidden="true">◒</i>Concentra</a><nav aria-label="Navegación principal"><a href="#hoy">Hoy</a><a href="#horario">Mi horario</a><a href="#avance">Mi avance</a><a href="#grupo">Grupo</a></nav><button class="link" id="accountButton">Iniciar sesión</button><button id="help" class="help" aria-label="Guía para iPhone">?</button></div></header>
 <main>
+<div class="profileSync"><small role="status" id="profileState"></small><button id="importStudy" hidden class="link">Importar mis datos anteriores</button><button id="syncStudy" class="link" hidden>Sincronizar</button></div>
 <p class="eyebrow date" id="date"></p>
 <section id="hoy" class="page">
 <h1>Mi estudio<span>.</span></h1>
@@ -34,6 +35,7 @@
 <div id="room" class="two" hidden><section class="card"><p class="eyebrow">Compartir con el grupo</p><h2>¿En qué estás?</h2>
 <form id="postForm"><label for="kind">Tipo de publicación</label><select id="kind"><option>Meta</option><option>Rutina</option><option>Logro</option></select><label for="postText">Mensaje</label><textarea required maxlength="600" rows="4" id="postText" placeholder="Ej. Esta tarde quiero terminar la guía de álgebra. ¿Quién se suma?"></textarea><button id="useRoutine" type="button" class="link">Usar mi bloque de estudio</button><div><button class="solid">Publicar en el grupo</button></div></form>
 <p id="groupStatus" role="status"></p><hr><button id="convertProfile" class="link" hidden>Registrar mi perfil anterior</button><button id="inviteFriends" class="link">Compartir invitación ↗</button></section><section class="card"><div class="row"><h2>Muro del grupo</h2><button type="button" id="reloadFeed" class="link">Actualizar</button></div><div id="feed"></div></section></div></section>
+
 <p id="dataWarn" role="status" hidden>Hay registros locales que no se pudieron leer. Tus bloques válidos siguen disponibles.</p><p id="storageWarn" role="alert" hidden>Este navegador tiene el almacenamiento restringido. Los cambios temporales pueden perderse al cerrar o recargar la página.</p>
 </main><footer>Concentra <span>Estudio digital inteligente</span></footer>
 <dialog id="modal" aria-labelledby="modalTitle"><div class="row"><h2 id="modalTitle"></h2><button class="help" id="close" aria-label="Cerrar">×</button></div><div id="modalBody"></div><p id="modalNotice" role="status"></p></dialog><div role="status" id="toast"></div>

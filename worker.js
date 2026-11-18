@@ -50,6 +50,6 @@ export default {async fetch(request,env){
   if(url.pathname==='/robots.txt')return new Response('User-agent: *\nDisallow: /',{headers});
   if(url.pathname==='/bloqueador.zip')return new Response(Uint8Array.from(atob(assets[url.pathname]),c=>c.charCodeAt(0)),{headers:{...headers,'Content-Type':'application/zip','Content-Disposition':'attachment; filename="Concentra-bloqueo.zip"'}});
   if(!Object.hasOwn(assets,url.pathname))return new Response('Página no encontrada',{status:404,headers});
-  const types={'/':'text/html; charset=utf-8','/style.css':'text/css; charset=utf-8','/app.js':'application/javascript','/horario.js':'application/javascript','/cuenta.js':'application/javascript','/grupo.js':'application/javascript','/icon.png':'image/png','/app.webmanifest':'application/manifest+json'};
+  const types={'/':'text/html; charset=utf-8','/style.css':'text/css; charset=utf-8','/app.js':'application/javascript','/horario.js':'application/javascript','/perfil.js':'application/javascript','/cuenta.js':'application/javascript','/grupo.js':'application/javascript','/icon.png':'image/png','/app.webmanifest':'application/manifest+json'};
   const value=assets[url.pathname];return new Response(url.pathname==='/icon.png'?Uint8Array.from(atob(value),c=>c.charCodeAt(0)):value,{headers:{...headers,'Content-Type':types[url.pathname]}});
 }};

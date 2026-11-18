@@ -9,4 +9,5 @@ export const calendars=sqliteTable('calendars',{id:text('id').primaryKey(),block
 
 export const accounts=sqliteTable('accounts',{id:text('id').primaryKey(),name:text('name').notNull(),login:text('login').unique(),salt:text('salt'),hash:text('hash')});
 export const sessions=sqliteTable('sessions',{token:text('token').primaryKey(),account:text('account').notNull().references(()=>accounts.id),expires:integer('expires').notNull()},t=>[index('session_expiry').on(t.expires)]);
+export const studyProfiles=sqliteTable('study_profiles',{account:text('account').primaryKey().references(()=>accounts.id),revision:integer('revision').notNull(),state:text('state').notNull()});
 export const attempts=sqliteTable('attempts',{key:text('key').primaryKey(),n:integer('n').notNull(),slot:integer('slot').notNull()},t=>[index('attempt_slot').on(t.slot)]);

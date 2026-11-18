@@ -19,10 +19,14 @@ const deviceStore = {
 };
 const days = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
 const defaults = () => ({subject:'', goal:'', minutes:25, classes:[], history:[], timer:null});
+const guestStore='concentra.datos.invitado';
+if(deviceStore.getItem(guestStore)===null)deviceStore.setItem(guestStore,deviceStore.getItem(key)||JSON.stringify(defaults()));
+let studyScope=deviceStore.getItem('concentra.sesion.v2')?(deviceStore.getItem('concentra.estudio.activo')||''):'';
+function studyKey(){return studyScope?'concentra.datos.'+studyScope:guestStore;}
 let data = defaults();
 function load() {
   let saved;
-  try { saved=JSON.parse(deviceStore.getItem(key)||'null'); }
+  try { saved=JSON.parse(deviceStore.getItem(studyKey())||'null'); }
   catch { saved=null; $('dataWarn').hidden=false; }
   data=Object.assign(defaults(),saved);
   const validMinutes=n=>Number.isInteger(n)&&n>=1&&n<=180;
@@ -40,9 +44,13 @@ function load() {
   if(data.timer&&!(validBlock(data.timer)&&(Number.isFinite(data.timer.end)||(data.timer.end===null&&Number.isFinite(data.timer.left)&&data.timer.left>=0)))){data.timer=null;$('dataWarn').hidden=false;}
   if(!Array.isArray(data.blockSites))delete data.blockSites;
 }
-function save() {
-  deviceStore.setItem(key,JSON.stringify(data));
+function mirrorStudy(){
+  deviceStore.setItem(key,JSON.stringify({timer:data.timer?{end:data.timer.end}:null,blockSites:data.blockSites}));
   document.dispatchEvent(new Event('concentra-sync'));
+}
+function save() {
+  deviceStore.setItem(studyKey(),JSON.stringify(data));mirrorStudy();
+  document.dispatchEvent(new Event('study-edited'));
 }
 load();
 document.addEventListener('click',e=>{if(e.target.closest('#proteger'))openProtection();});
@@ -77,7 +85,7 @@ function say(s) {
 }
 function dialog(title, body) { $('modalNotice').textContent=''; $('modalTitle').textContent=title; $('modalBody').innerHTML=body; if (!$('modal').open) $('modal').showModal(); }
 $('close').onclick=()=> $('modal').close();
-$('help').onclick=()=>dialog('Estudiar en el iPhone', `<h3>Agregar Concentra a Inicio</h3><p>En Safari, abre Compartir y elige Agregar a Inicio. Si aparece la opción Abrir como app web, actívala. Abre el ícono para empezar a registrar tus sesiones ahí.</p><h3>Quedarte en una sola app</h3><p>Activa Acceso guiado en Configuración → Accesibilidad y define tu código. Abre Concentra desde Inicio, presiona tres veces el botón lateral e inicia Acceso guiado. Al terminar, finaliza también Acceso guiado.</p><p>Durante Acceso guiado debes salir de ese modo para hacer una llamada de emergencia. <a href="https://support.apple.com/es-cl/111795" target="_blank" rel="noreferrer">Instrucciones de Apple</a></p><h3>Si necesitas otras apps para estudiar</h3><p>En Configuración → Enfoque puedes crear un modo Estudio, elegir qué avisos recibir y programar su horario.</p><h3>Tus datos</h3><p>El historial y las clases se guardan en este navegador. Borrar sus datos elimina estos registros. El reloj recupera el tiempo transcurrido al volver a la app. El aviso de término aparece dentro de Concentra.</p>`);
+$('help').onclick=()=>dialog('Estudiar en el iPhone', `<h3>Agregar Concentra a Inicio</h3><p>En Safari, abre Compartir y elige Agregar a Inicio. Si aparece la opción Abrir como app web, actívala. Abre el ícono para empezar a registrar tus sesiones ahí.</p><h3>Quedarte en una sola app</h3><p>Activa Acceso guiado en Configuración → Accesibilidad y define tu código. Abre Concentra desde Inicio, presiona tres veces el botón lateral e inicia Acceso guiado. Al terminar, finaliza también Acceso guiado.</p><p>Durante Acceso guiado debes salir de ese modo para hacer una llamada de emergencia. <a href="https://support.apple.com/es-cl/111795" target="_blank" rel="noreferrer">Instrucciones de Apple</a></p><h3>Si necesitas otras apps para estudiar</h3><p>En Configuración → Enfoque puedes crear un modo Estudio, elegir qué avisos recibir y programar su horario.</p><h3>Tus datos</h3><p>Con sesión iniciada, tu horario y tu avance se guardan en tu cuenta. Como invitado, quedan en este navegador. El reloj recupera el tiempo transcurrido al volver a la app. El aviso de término aparece dentro de Concentra.</p>`);
 function go() {
   const name=location.hash.startsWith('#invitar=')?'grupo':['hoy','horario','avance','grupo'].includes(location.hash.slice(1))?location.hash.slice(1):'hoy';
   document.querySelectorAll('.page').forEach(p=>p.hidden=p.id!==name);
@@ -207,6 +215,6 @@ let lastMinute=Math.floor(Date.now()/60000);
 setInterval(()=>{if(data.timer?.end!=null&&data.timer.end<=Date.now())refresh();else if(data.timer)$('digits').textContent=digits(remaining(data.timer));
   const minute=Math.floor(Date.now()/60000);if(minute!==lastMinute){lastMinute=minute;schedule();progress();$('date').textContent=new Date().toLocaleDateString('es-CL',{weekday:'long',day:'numeric',month:'long'});}
 },400);
-window.addEventListener('storage',e=>{if(e.key===key||e.key===null){load();refresh();}});
+window.addEventListener('storage',e=>{if(e.key===studyKey()||e.key===null){load();refresh();}});
 document.addEventListener('visibilitychange',()=>{if(!document.hidden){load();refresh();}});
 window.addEventListener('resize',paint);refresh();go();

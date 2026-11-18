@@ -22,6 +22,13 @@
       "when": 1795039581283,
       "tag": "0002_brave_rocket_racer",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1795041707318,
+      "tag": "0003_complex_shadow_king",
+      "breakpoints": true
     }
   ]
 }

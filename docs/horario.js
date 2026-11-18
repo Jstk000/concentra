@@ -3,8 +3,8 @@
  const slots=$('slots'),calendarKey='concentra.calendar.v1';
  const base='https://concentra-estudio-jp-2611.fastmule27.chatgpt.site';
  function readLink(){
-   const raw=deviceStore.getItem(calendarKey);
-   if(!raw)return null;
+   const raw=studyScope?JSON.stringify(data.calendarLink||null):deviceStore.getItem(calendarKey);
+   if(!raw||raw==='null')return null;
    try{
      const value=JSON.parse(raw);
      if(!value||!/^[a-f0-9]{64}$/.test(value.secret))throw Error();
@@ -16,7 +16,17 @@
    }catch{$('calState').textContent='Revisa la vinculación del calendario. Tu horario sigue disponible.';return null;}
  }
  let link=readLink(),queue=Promise.resolve(),revoking=false;
- const persist=()=>link?deviceStore.setItem(calendarKey,JSON.stringify(link)):deviceStore.removeItem(calendarKey);
+ function persist(){
+   if(!studyScope)return link?deviceStore.setItem(calendarKey,JSON.stringify(link)):deviceStore.removeItem(calendarKey);
+   const next=link?{secret:link.secret,url:link.url}:null;
+   if(JSON.stringify(next)!==JSON.stringify(data.calendarLink||null)){if(next)data.calendarLink=next;else delete data.calendarLink;save();}
+   return true;
+ }
+ document.addEventListener('profile-loaded',()=>{
+   const next=readLink();if(link?.secret!==next?.secret&&$('calControls')&&$('modal').open)$('modal').close();
+   if(link&&next?.secret===link.secret)Object.assign(link,next);else link=next;
+   if(link)sync();
+ });
  function addSlot(chosen=[new Date().getDay()],from='09:00',until='10:30'){
    const row=document.createElement('fieldset');row.className='slot';row.innerHTML='<legend>Bloque semanal</legend><div class="dayChoices">'+[1,2,3,4,5,6,0].map(i=>'<label><input type="checkbox" value="'+i+'" '+(chosen.includes(i)?'checked':'')+'><span>'+days[i].slice(0,3)+'</span></label>').join('')+'</div><div class="pair"><label>Desde<input type="time" required class="from"></label><label>Hasta<input type="time" required class="until"></label></div><button type="button" class="link removeSlot">Quitar bloque</button>';
    row.querySelector('.from').value=from;row.querySelector('.until').value=until;
@@ -58,7 +68,7 @@
  document.addEventListener('concentra-horario',()=>sync());
  window.addEventListener('online',()=>sync());
  window.addEventListener('storage',e=>{
-   if(e.key!==calendarKey&&e.key!==null)return;
+   if(studyScope||(e.key!==calendarKey&&e.key!==null))return;
    const previous=link?.secret,next=readLink();
    if(link&&next?.secret===previous){Object.assign(link,next);return;}
    link=next;

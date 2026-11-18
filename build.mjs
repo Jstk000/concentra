@@ -10,5 +10,6 @@ for(const [route,name] of Object.entries(files)){
 await fs.mkdir('dist/server',{recursive:true});
 assets['/horario.js']=await fs.readFile('docs/horario.js','utf8');
 assets['/cuenta.js']=await fs.readFile('docs/cuenta.js','utf8');
-const source=await fs.readFile('accounts.js','utf8')+'\nconst assets='+JSON.stringify(assets)+';\n'+await fs.readFile('calendar-server.js','utf8')+'\n'+await fs.readFile('worker.js','utf8');
+assets['/perfil.js']=await fs.readFile('docs/perfil.js','utf8');
+const source=await fs.readFile('study-server.js','utf8')+'\n'+await fs.readFile('accounts.js','utf8')+'\nconst assets='+JSON.stringify(assets)+';\n'+await fs.readFile('calendar-server.js','utf8')+'\n'+await fs.readFile('worker.js','utf8');
 await build({stdin:{contents:source,resolveDir:process.cwd()},bundle:true,format:'esm',platform:'browser',target:'es2022',outfile:'dist/server/index.js'});

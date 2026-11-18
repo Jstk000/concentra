@@ -19,8 +19,8 @@ async function finishAccount(result){
 }
 function accountForm(register=false){
  if(signedName){
-   dialog('Mi cuenta','<p id="myUser"></p><p>El horario y el avance de estudio se guardan en este navegador.</p><button id="logout" class="solid">Cerrar sesión</button><p id="accountError" role="status"></p>');$('myUser').textContent=signedName;
-   $('logout').onclick=async()=>{try{await accountRequest('logout',{});deviceStore.removeItem(sessionKey);setName('');$('modal').close();document.dispatchEvent(new Event('account-change'));}catch(e){$('accountError').textContent=e.message;}};return;
+   dialog('Mi cuenta','<p id="myUser"></p><p>Tu horario, bloques completados, logros y preferencias se guardan en tu cuenta.</p><button id="logout" class="solid">Cerrar sesión</button><p id="accountError" role="status"></p>');$('myUser').textContent=signedName;
+   $('logout').onclick=async()=>{try{await window.flushStudy?.();await accountRequest('logout',{});deviceStore.removeItem(sessionKey);setName('');$('modal').close();document.dispatchEvent(new Event('account-change'));}catch(e){$('accountError').textContent=e.message;}};return;
  }
  dialog(register?'Crear cuenta':'Iniciar sesión','<form id="accountForm"><label for="accountUser">Usuario</label><input id="accountUser" name="username" required minlength="3" maxlength="32" pattern="[a-zA-Z0-9._\\-]{3,32}" autocapitalize="none" spellcheck="false" autocomplete="username"><label for="accountPass">Contraseña</label><input type="password" id="accountPass" name="password" required maxlength="256" autocomplete="'+(register?'new-password':'current-password')+'" '+(register?'minlength="12" placeholder="Al menos 12 caracteres"':'')+'>'+(register&&window.previousMember?'<label><input id="migrateProfile" style="width:auto" type="checkbox" checked> Conservar mi perfil anterior del grupo</label>':'')+'<p id="accountError" role="status"></p><button class="solid">'+(register?'Crear cuenta':'Entrar')+'</button></form><button class="link" id="switchAccount">'+(register?'Ya tengo cuenta · Iniciar sesión':'Crear una cuenta')+'</button><div id="googleButton"></div>');
  $('switchAccount').onclick=()=>accountForm(!register);
