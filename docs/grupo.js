@@ -11,7 +11,7 @@
   }
   async function request(path,body,credential=deviceStore.getItem(profileKey)){
     const options=body?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}:{cache:'no-store'};
-    const token=deviceStore.getItem(sessionKey);
+    const token=accountToken();
     if(token)options.headers={...options.headers,'x-concentra-session':token};
     else if(credential)options.headers={...options.headers,'x-concentra-key':credential};
     const response=await fetch(service+'/api/'+path,options);
@@ -38,7 +38,7 @@
       }else if(s.state==='guest'){
         enter(invitation?'Únete al grupo de estudio':'Pide una invitación',invitation?'Quienes se unan podrán leer tus publicaciones y compartir las suyas.':'Abre el enlace de invitación que te envió un amigo.',invitation?'joinForm':'');
       }else if(s.state==='member'){
-        $('entry').hidden=true;$('room').hidden=false;showPosts(s.posts);window.previousMember=!deviceStore.getItem(sessionKey);$('convertProfile').hidden=!window.previousMember;
+        $('entry').hidden=true;$('room').hidden=false;showPosts(s.posts);window.previousMember=!accountToken();$('convertProfile').hidden=!window.previousMember;
         memberLink=location.origin+location.pathname+'#invitar='+s.invite;
         invitation='';try{sessionStorage.removeItem(key);}catch{}
         if(location.hash.startsWith('#invitar=')){history.replaceState(null,'','#grupo');go();}

@@ -3,6 +3,7 @@
  const slots=$('slots'),calendarKey='concentra.calendar.v1';
  const base='https://concentra-estudio-jp-2611.fastmule27.chatgpt.site';
  function readLink(){
+   if(studyScope===null)return null;
    const raw=studyScope?JSON.stringify(data.calendarLink||null):deviceStore.getItem(calendarKey);
    if(!raw||raw==='null')return null;
    try{
@@ -17,6 +18,7 @@
  }
  let link=readLink(),queue=Promise.resolve(),revoking=false;
  function persist(){
+   if(studyScope===null)return false;
    if(!studyScope)return link?deviceStore.setItem(calendarKey,JSON.stringify(link)):deviceStore.removeItem(calendarKey);
    const next=link?{secret:link.secret,url:link.url}:null;
    if(JSON.stringify(next)!==JSON.stringify(data.calendarLink||null)){if(next)data.calendarLink=next;else delete data.calendarLink;save();}
@@ -68,7 +70,7 @@
  document.addEventListener('concentra-horario',()=>sync());
  window.addEventListener('online',()=>sync());
  window.addEventListener('storage',e=>{
-   if(studyScope||(e.key!==calendarKey&&e.key!==null))return;
+   if(studyScope!==''||(e.key!==calendarKey&&e.key!==null))return;
    const previous=link?.secret,next=readLink();
    if(link&&next?.secret===previous){Object.assign(link,next);return;}
    link=next;

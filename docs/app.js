@@ -19,16 +19,56 @@ const deviceStore = {
 };
 const days = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
 const defaults = () => ({subject:'', goal:'', minutes:25, classes:[], history:[], timer:null});
+const sessionKey='concentra.sesion.v3';
+const legacySessionKey='concentra.sesion.v2';
+function storedSession(){
+  const raw=deviceStore.getItem(sessionKey)||deviceStore.getItem(legacySessionKey);
+  if(!raw)return null;
+  // Accept sessions saved before the account scope was stored with the token.
+  if(/^[a-f0-9]{64}$/.test(raw))return {token:raw};
+  try{
+    const session=JSON.parse(raw);
+    if(typeof session?.token==='string'&&/^[a-f0-9]{64}$/.test(session.token)){
+      return {token:session.token,scope:/^[a-f0-9]{64}$/.test(session.scope||'')?session.scope:null,name:typeof session.name==='string'?session.name:''};
+    }
+  }catch{}
+  return null;
+}
+function storeSession(session){
+  deviceStore.setItem(sessionKey,JSON.stringify(session));
+  deviceStore.removeItem(legacySessionKey);
+}
+function accountToken(){return storedSession()?.token||'';}
+function accountScope(){const session=storedSession();return session?session.scope||null:'';}
 const guestStore='concentra.datos.invitado';
 if(deviceStore.getItem(guestStore)===null)deviceStore.setItem(guestStore,deviceStore.getItem(key)||JSON.stringify(defaults()));
-let studyScope=deviceStore.getItem('concentra.sesion.v2')?(deviceStore.getItem('concentra.estudio.activo')||''):'';
+let studyScope=accountScope();
 function studyKey(){return studyScope?'concentra.datos.'+studyScope:guestStore;}
+function studyCache(){
+  let stored;
+  try{
+    stored=JSON.parse(deviceStore.getItem(studyKey())||'null');
+  }catch{$('dataWarn').hidden=false;stored=null;}
+  if(studyScope&&stored?.format===1)return stored;
+  let base=null;
+  if(studyScope){
+    try{base=JSON.parse(deviceStore.getItem(studyKey()+'.base')||'null');}
+    catch{$('dataWarn').hidden=false;}
+  }
+  return {state:stored,base,revision:0};
+}
+function writeStudy(state,confirmed=studyCache()){
+  if(studyScope)deviceStore.setItem(studyKey(),JSON.stringify({
+    format:1,state,base:confirmed.base,revision:confirmed.revision
+  }));
+  else deviceStore.setItem(studyKey(),JSON.stringify(state));
+}
 let data = defaults();
 function load() {
-  let saved;
-  try { saved=JSON.parse(deviceStore.getItem(studyKey())||'null'); }
-  catch { saved=null; $('dataWarn').hidden=false; }
-  data=Object.assign(defaults(),saved);
+  data=normalizeStudy(studyScope===null?null:studyCache().state);
+}
+function normalizeStudy(saved){
+  const data=Object.assign(defaults(),saved);
   const validMinutes=n=>Number.isInteger(n)&&n>=1&&n<=180;
   const validText=v=>typeof v==='string';
   const validTime=v=>typeof v==='string'&&/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(v);
@@ -43,16 +83,18 @@ function load() {
   data.classes=classes;data.history=history;
   if(data.timer&&!(validBlock(data.timer)&&(Number.isFinite(data.timer.end)||(data.timer.end===null&&Number.isFinite(data.timer.left)&&data.timer.left>=0)))){data.timer=null;$('dataWarn').hidden=false;}
   if(!Array.isArray(data.blockSites))delete data.blockSites;
+  return data;
 }
 function mirrorStudy(){
   deviceStore.setItem(key,JSON.stringify({timer:data.timer?{end:data.timer.end}:null,blockSites:data.blockSites}));
   document.dispatchEvent(new Event('concentra-sync'));
 }
 function save() {
-  deviceStore.setItem(studyKey(),JSON.stringify(data));mirrorStudy();
+  if(studyScope===null||studyScope!==accountScope())return;
+  writeStudy(data);mirrorStudy();
   document.dispatchEvent(new Event('study-edited'));
 }
-load();
+load();mirrorStudy();
 document.addEventListener('click',e=>{if(e.target.closest('#proteger'))openProtection();});
 function openProtection(){
   const ios=/iPhone|iPad|iPod/.test(navigator.userAgent);
@@ -210,11 +252,16 @@ function paint(){
     ctx.strokeStyle='rgba(195,210,149,'+(.21+i*.004)+')';ctx.lineWidth=1;ctx.stroke();
   }
 }
-function refresh(){const ended=settle();$('subject').value=data.subject;$('goal').value=data.goal;$('date').textContent=new Date().toLocaleDateString('es-CL',{weekday:'long',day:'numeric',month:'long'});renderTimer();schedule();progress();if(ended)say('¡Bloque completado! Tu avance quedó registrado.');}
+function refresh(){const ended=settle();if($('subject').value!==data.subject)$('subject').value=data.subject;if($('goal').value!==data.goal)$('goal').value=data.goal;$('date').textContent=new Date().toLocaleDateString('es-CL',{weekday:'long',day:'numeric',month:'long'});renderTimer();schedule();progress();if(ended)say('¡Bloque completado! Tu avance quedó registrado.');}
 let lastMinute=Math.floor(Date.now()/60000);
 setInterval(()=>{if(data.timer?.end!=null&&data.timer.end<=Date.now())refresh();else if(data.timer)$('digits').textContent=digits(remaining(data.timer));
   const minute=Math.floor(Date.now()/60000);if(minute!==lastMinute){lastMinute=minute;schedule();progress();$('date').textContent=new Date().toLocaleDateString('es-CL',{weekday:'long',day:'numeric',month:'long'});}
 },400);
-window.addEventListener('storage',e=>{if(e.key===studyKey()||e.key===null){load();refresh();}});
+window.addEventListener('storage',e=>{
+  if(studyScope!==accountScope()||(e.key!==studyKey()&&e.key!==null))return;
+  const previous=data.calendarLink;
+  load();refresh();
+  if(JSON.stringify(previous)!==JSON.stringify(data.calendarLink))document.dispatchEvent(new Event('profile-loaded'));
+});
 document.addEventListener('visibilitychange',()=>{if(!document.hidden){load();refresh();}});
 window.addEventListener('resize',paint);refresh();go();
