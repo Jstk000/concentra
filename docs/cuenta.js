@@ -26,7 +26,10 @@ function accountForm(register=false){
      if(migrate)localStorage.removeItem('concentra.perfil.clave');await finishAccount(result);
    }catch(err){$('accountError').textContent=err.message;b.disabled=false;}
  };
- if(googleClient){
+ mountGoogleButton();
+}
+function mountGoogleButton(){
+ if(googleClient&&document.getElementById('googleButton')){
    const mount=$('googleButton');const render=()=>{if(!mount.isConnected)return;google.accounts.id.initialize({client_id:googleClient,callback:async r=>{try{await finishAccount(await accountRequest('google',{credential:r.credential}));}catch(e){$('accountError').textContent=e.message;}}});google.accounts.id.renderButton(mount,{locale:'es',theme:'outline',size:'large'});};
    if(window.google?.accounts)render();else{let el=document.querySelector('script[data-google]');if(!el){el=document.createElement('script');el.dataset.google='1';el.src='https://accounts.google.com/gsi/client';document.head.append(el);}el.addEventListener('load',render,{once:true});}
  }
@@ -38,5 +41,5 @@ async function restoreSession(){
  else setName('');
 }
 window.addEventListener('storage',e=>{if(e.key===sessionKey){restoreSession();document.dispatchEvent(new Event('account-change'));}});
-restoreSession();accountRequest('config').then(v=>{googleClient=v.client;}).catch(()=>{});
+restoreSession();accountRequest('config').then(v=>{googleClient=v.client;mountGoogleButton();}).catch(()=>{});
 
