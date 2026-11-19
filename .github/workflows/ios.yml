@@ -1,0 +1,15 @@
+name: Compilar Concentra para iPhone
+on:
+  push:
+    paths:
+      - 'native/ios/**'
+      - '.github/workflows/ios.yml'
+permissions:
+  contents: read
+jobs:
+  compilar:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compilar la app y el monitor para un iPhone
+        run: xcodebuild -project native/ios/Concentra.xcodeproj -scheme Concentra -configuration Debug -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO build

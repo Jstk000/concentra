@@ -98,7 +98,26 @@ function save() {
 }
 load();mirrorStudy();
 document.addEventListener('click',e=>{if(e.target.closest('#proteger'))openProtection();});
+const installedApp = navigator.userAgent.includes('ConcentraNative/1');
+function deviceCommand(command){
+  try { return window.prompt('concentra-device-v1',command) || ''; }
+  catch { return ''; }
+}
+let deviceDeadline = installedApp ? Number(deviceCommand('status')) || 0 : 0;
+function strictDeadline(){
+  return Math.max(deviceDeadline, data.timer?.strict === true ? data.timer.end || 0 : 0);
+}
 function openProtection(){
+  if(installedApp){
+    dialog('Apps que quiero bloquear','<p>Elige las apps de este dispositivo una vez. Al empezar un bloque, quedan restringidas hasta que se cumpla el tiempo.</p><button class="solid" id="chooseApps">Elegir aplicaciones</button>');
+    $('chooseApps').disabled=strictDeadline()>Date.now();
+    $('chooseApps').onclick=()=>{
+      const result=deviceCommand('choose');
+      if(result==='OK')$('modal').close();
+      else say(result||'No se pudo abrir la selección de aplicaciones.');
+    };
+    return;
+  }
   const ios=/iPhone|iPad|iPod/.test(navigator.userAgent);
   const domains=['instagram.com','tiktok.com','x.com','youtube.com','reddit.com','twitch.tv'];
   const selected=data.blockSites??domains.slice(0,3);
@@ -218,17 +237,37 @@ function renderTimer(){
   $('runningNote').textContent=t?(t.goal||'Una tarea a la vez.'):'';
   $('start').textContent=t?(paused?'▶　Continuar':'Ⅱ　Pausar'):'▶　Empezar bloque';
   $('stop').hidden=!t;$('subject').disabled=!!t;$('goal').disabled=!!t;
+  const protectedNow=strictDeadline()>Date.now();
+  $('start').hidden=protectedNow;$('stop').hidden=!t||protectedNow;
+  if(protectedNow){
+    $('mode').textContent='Bloque protegido';
+    $('digits').textContent=digits(strictDeadline()-Date.now());
+    $('runningNote').hidden=false;
+    $('runningNote').textContent='Las apps elegidas quedan restringidas hasta las '+clockTime(strictDeadline())+'.';
+  }
   document.querySelectorAll('[data-min]').forEach(b=>b.setAttribute('aria-pressed',Number(b.dataset.min)===data.minutes));
   const custom=![15,25,50].includes(data.minutes);
   $('custom').textContent=custom?data.minutes+' min':'Otra';$('custom').setAttribute('aria-pressed',custom);
 }
 $('start').onclick=()=>{
+  if(strictDeadline()>Date.now())return;
   if(settle()){refresh();say('¡Bloque completado! Tu avance quedó registrado.');return;}
   const t=data.timer;
   if(!t){
     askReason('Tu motivo para este bloque','Empezar bloque',reason=>{
+      let end=Date.now()+data.minutes*60000;
+      if(installedApp){
+        const reply=deviceCommand('start:'+data.minutes);
+        const deadline=Number(reply);
+        if(!Number.isSafeInteger(deadline)||deadline<=Date.now()){
+          say(reply||'No se pudo activar el bloqueo. Revisa Bloqueo y avisos.');
+          return;
+        }
+        deviceDeadline=end=deadline;
+      }
       data.reason=reason;
-      data.timer={id:freshId(),subject:data.subject.trim(),goal:data.goal.trim(),reason,minutes:data.minutes,end:Date.now()+data.minutes*60000,left:null};
+      data.timer={id:freshId(),subject:data.subject.trim(),goal:data.goal.trim(),reason,minutes:data.minutes,end,left:null};
+      if(installedApp)data.timer.strict=true;
       save();renderTimer();schedule();
       $('modal').close();
     });
@@ -239,6 +278,7 @@ $('start').onclick=()=>{
   save();renderTimer();schedule();
 };
 $('stop').onclick=()=>{
+  if(strictDeadline()>Date.now())return;
   const id=data.timer?.id;
   dialog('¿Terminar este bloque?','<p>Si sales antes del final, este bloque quedará fuera de tus logros. También puedes pausarlo y seguir después.</p><button class="solid" id="discard">Terminar bloque</button> <button class="link" id="keep">Seguir estudiando</button>');
   $('keep').onclick=()=> $('modal').close();
@@ -297,7 +337,9 @@ function paint(){
 }
 function refresh(){const ended=settle();if($('subject').value!==data.subject)$('subject').value=data.subject;if($('goal').value!==data.goal)$('goal').value=data.goal;$('date').textContent=new Date().toLocaleDateString('es-CL',{weekday:'long',day:'numeric',month:'long'});renderTimer();schedule();progress();if(ended)say('¡Bloque completado! Tu avance quedó registrado.');}
 let lastMinute=Math.floor(Date.now()/60000);
-setInterval(()=>{if(data.timer?.end!=null&&data.timer.end<=Date.now())refresh();else if(data.timer)$('digits').textContent=digits(remaining(data.timer));
+setInterval(()=>{if(deviceDeadline&&deviceDeadline<=Date.now()){deviceDeadline=0;refresh();}
+  if(strictDeadline()>Date.now())$('digits').textContent=digits(strictDeadline()-Date.now());
+  else if(data.timer?.end!=null&&data.timer.end<=Date.now())refresh();else if(data.timer)$('digits').textContent=digits(remaining(data.timer));
   const minute=Math.floor(Date.now()/60000);if(minute!==lastMinute){lastMinute=minute;schedule();progress();$('date').textContent=new Date().toLocaleDateString('es-CL',{weekday:'long',day:'numeric',month:'long'});}
 },400);
 window.addEventListener('storage',e=>{

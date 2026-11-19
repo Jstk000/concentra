@@ -1,3 +1,7 @@
 node_modules/
 dist/
+native/android/.gradle/
+native/android/build/
+native/android/local.properties
+xcuserdata/
 

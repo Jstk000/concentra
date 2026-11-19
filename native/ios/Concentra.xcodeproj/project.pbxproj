@@ -1,0 +1,41 @@
+// !$*UTF8*$!
+{
+archiveVersion = 1;
+classes = {};
+objectVersion = 56;
+objects = {
+000000000000000000000001 /* AppSwift */ = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "App/Concentra.swift"; sourceTree = "<group>"; };
+000000000000000000000002 /* MonitorSwift */ = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Monitor/Monitor.swift"; sourceTree = "<group>"; };
+000000000000000000000003 /* Shared */ = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Shared/FocusStore.swift"; sourceTree = "<group>"; };
+000000000000000000000004 /* AppInfo */ = { isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "App/Info.plist"; sourceTree = "<group>"; };
+000000000000000000000005 /* MonitorInfo */ = { isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Monitor/Info.plist"; sourceTree = "<group>"; };
+000000000000000000000006 /* Entitlements */ = { isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "Shared/Focus.entitlements"; sourceTree = "<group>"; };
+000000000000000000000007 /* iOS Product */ = { isa = PBXFileReference; explicitFileType = "wrapper.application"; path = Concentra.app; sourceTree = BUILT_PRODUCTS_DIR; };
+000000000000000000000008 /* Monitor Product */ = { isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; path = Monitor.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+000000000000000000000009 /* Products */ = { isa = PBXGroup; children = (000000000000000000000007, 000000000000000000000008,); name = Products; sourceTree = "<group>"; };
+00000000000000000000000A /* Root */ = { isa = PBXGroup; children = (000000000000000000000001, 000000000000000000000002, 000000000000000000000003, 000000000000000000000006, 000000000000000000000004, 000000000000000000000005, 000000000000000000000009,); sourceTree = "<group>"; };
+00000000000000000000000B /* App code */ = { isa = PBXBuildFile; fileRef = 000000000000000000000001;  };
+00000000000000000000000C /* Monitor code */ = { isa = PBXBuildFile; fileRef = 000000000000000000000002;  };
+00000000000000000000000D /* Shared app */ = { isa = PBXBuildFile; fileRef = 000000000000000000000003;  };
+00000000000000000000000E /* Shared monitor */ = { isa = PBXBuildFile; fileRef = 000000000000000000000003;  };
+00000000000000000000000F /* Embed Monitor */ = { isa = PBXBuildFile; fileRef = 000000000000000000000008; settings = { ATTRIBUTES = (RemoveHeadersOnCopy,); }; };
+000000000000000000000010 /* App sources */ = { isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (00000000000000000000000B, 00000000000000000000000D,); runOnlyForDeploymentPostprocessing = 0; };
+000000000000000000000011 /* Monitor sources */ = { isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (00000000000000000000000C, 00000000000000000000000E,); runOnlyForDeploymentPostprocessing = 0; };
+000000000000000000000012 /* Embed */ = { isa = PBXCopyFilesBuildPhase; buildActionMask = 2147483647; dstPath = ""; dstSubfolderSpec = 13; files = (00000000000000000000000F,); name = "Embed App Extensions"; runOnlyForDeploymentPostprocessing = 0; };
+000000000000000000000015 /* Proxy */ = { isa = PBXContainerItemProxy; containerPortal = 000000000000000000000013; proxyType = 1; remoteGlobalIDString = 000000000000000000000014; remoteInfo = Monitor; };
+000000000000000000000016 /* Dependency */ = { isa = PBXTargetDependency; target = 000000000000000000000014; targetProxy = 000000000000000000000015; };
+000000000000000000000017 /* ProjectDebug */ = { isa = XCBuildConfiguration; buildSettings = { CONCENTRA_BASE_ID = cl.concentra.jstk000.estudio; SDKROOT = iphoneos; IPHONEOS_DEPLOYMENT_TARGET = 16.0; SWIFT_VERSION = 5.0; TARGETED_DEVICE_FAMILY = "1,2"; CLANG_ENABLE_MODULES = YES; SWIFT_OPTIMIZATION_LEVEL = "-Onone"; }; name = Debug; };
+000000000000000000000018 /* ProjectRelease */ = { isa = XCBuildConfiguration; buildSettings = { CONCENTRA_BASE_ID = cl.concentra.jstk000.estudio; SDKROOT = iphoneos; IPHONEOS_DEPLOYMENT_TARGET = 16.0; SWIFT_VERSION = 5.0; TARGETED_DEVICE_FAMILY = "1,2"; CLANG_ENABLE_MODULES = YES;  }; name = Release; };
+000000000000000000000019 /* Project configs */ = { isa = XCConfigurationList; buildConfigurations = (000000000000000000000017, 000000000000000000000018,); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+00000000000000000000001A /* ConcentraDebug */ = { isa = XCBuildConfiguration; buildSettings = { CODE_SIGN_STYLE = Automatic; CODE_SIGN_ENTITLEMENTS = Shared/Focus.entitlements; PRODUCT_NAME = "$(TARGET_NAME)"; PRODUCT_BUNDLE_IDENTIFIER = "$(CONCENTRA_BASE_ID)"; INFOPLIST_FILE = App/Info.plist; LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks ";  }; name = Debug; };
+00000000000000000000001B /* ConcentraRelease */ = { isa = XCBuildConfiguration; buildSettings = { CODE_SIGN_STYLE = Automatic; CODE_SIGN_ENTITLEMENTS = Shared/Focus.entitlements; PRODUCT_NAME = "$(TARGET_NAME)"; PRODUCT_BUNDLE_IDENTIFIER = "$(CONCENTRA_BASE_ID)"; INFOPLIST_FILE = App/Info.plist; LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks ";  }; name = Release; };
+00000000000000000000001C /* Concentra configs */ = { isa = XCConfigurationList; buildConfigurations = (00000000000000000000001A, 00000000000000000000001B,); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+00000000000000000000001D /* MonitorDebug */ = { isa = XCBuildConfiguration; buildSettings = { CODE_SIGN_STYLE = Automatic; CODE_SIGN_ENTITLEMENTS = Shared/Focus.entitlements; PRODUCT_NAME = "$(TARGET_NAME)"; PRODUCT_BUNDLE_IDENTIFIER = "$(CONCENTRA_BASE_ID).monitor"; INFOPLIST_FILE = Monitor/Info.plist; LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks"; SKIP_INSTALL = YES; APPLICATION_EXTENSION_API_ONLY = YES; }; name = Debug; };
+00000000000000000000001E /* MonitorRelease */ = { isa = XCBuildConfiguration; buildSettings = { CODE_SIGN_STYLE = Automatic; CODE_SIGN_ENTITLEMENTS = Shared/Focus.entitlements; PRODUCT_NAME = "$(TARGET_NAME)"; PRODUCT_BUNDLE_IDENTIFIER = "$(CONCENTRA_BASE_ID).monitor"; INFOPLIST_FILE = Monitor/Info.plist; LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks"; SKIP_INSTALL = YES; APPLICATION_EXTENSION_API_ONLY = YES; }; name = Release; };
+00000000000000000000001F /* Monitor configs */ = { isa = XCConfigurationList; buildConfigurations = (00000000000000000000001D, 00000000000000000000001E,); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+000000000000000000000020 /* Concentra */ = { isa = PBXNativeTarget; buildConfigurationList = 00000000000000000000001C; buildPhases = (000000000000000000000010, 000000000000000000000012,); buildRules = (); dependencies = (000000000000000000000016,); name = Concentra; productName = Concentra; productReference = 000000000000000000000007; productType = "com.apple.product-type.application"; };
+000000000000000000000014 /* Monitor */ = { isa = PBXNativeTarget; buildConfigurationList = 00000000000000000000001F; buildPhases = (000000000000000000000011,); buildRules = (); dependencies = (); name = Monitor; productName = Monitor; productReference = 000000000000000000000008; productType = "com.apple.product-type.app-extension"; };
+000000000000000000000013 /* Project */ = { isa = PBXProject; attributes = { LastSwiftUpdateCheck = 1600; LastUpgradeCheck = 1600; }; buildConfigurationList = 000000000000000000000019; compatibilityVersion = "Xcode 14.0"; developmentRegion = es; hasScannedForEncodings = 0; knownRegions = (es, Base,); mainGroup = 00000000000000000000000A; productRefGroup = 000000000000000000000009; projectDirPath = ""; projectRoot = ""; targets = (000000000000000000000020, 000000000000000000000014,); };
+};
+rootObject = 000000000000000000000013;
+}
