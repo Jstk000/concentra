@@ -19,7 +19,17 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.13'
-      - run: gradle -p native/android assembleDebug
+      - name: Compilar la app de prueba
+        run: |
+          cat > "$RUNNER_TEMP/repos.gradle" <<'EOF'
+          beforeSettings { settings ->
+            settings.pluginManagement.repositories {
+              google()
+              maven { url = uri('https://maven-central.storage-download.googleapis.com/maven2/') }
+            }
+          }
+          EOF
+          gradle --init-script "$RUNNER_TEMP/repos.gradle" -p native/android assembleDebug
       - name: Permitir aceleración del emulador
         run: sudo chmod a+rw /dev/kvm
       - uses: reactivecircus/android-emulator-runner@v2
