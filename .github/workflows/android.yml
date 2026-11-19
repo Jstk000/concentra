@@ -1,0 +1,32 @@
+name: Probar bloqueo en Android
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  pomodoro:
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+      - run: gradle -p native/android assembleDebug
+      - name: Permitir aceleración del emulador
+        run: sudo chmod a+rw /dev/kvm
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 30
+          target: google_apis
+          arch: x86_64
+          script: |
+            adb install native/android/build/outputs/apk/debug/Concentra-debug.apk
+            node native/android/test-pomodoro.mjs
