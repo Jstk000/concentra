@@ -1,0 +1,10 @@
+# Probar Concentra en tu iPhone
+
+1. Abre `Concentra.xcodeproj` en el Mac. Si Xcode pide componentes de iOS, deja que termine de instalarlos.
+2. Conecta el iPhone por cable, desbloquéalo y acepta «Confiar» si aparece.
+3. En Xcode, agrega tu cuenta desde **Settings → Accounts**. En el proyecto azul **Concentra**, abre **Signing & Capabilities** y selecciona tu equipo de Apple Developer Program en los targets **Concentra** y **Monitor**. Deja activada la firma automática. La capacidad Family Controls requiere que el equipo la tenga disponible. Apple muestra la compatibilidad de cada tipo de cuenta en su [tabla de capacidades](https://developer.apple.com/help/account/reference/supported-capabilities-ios/).
+4. Si Xcode indica que el identificador ya está registrado, cambia **CONCENTRA_BASE_ID** en **Project → Build Settings** por uno único de tu equipo. El identificador del monitor y el grupo compartido se derivan de ese valor.
+5. En la barra superior selecciona el esquema **Concentra**, elige tu iPhone y pulsa **▶**. Si lo pide el iPhone, activa el modo de desarrollador en **Configuración → Privacidad y seguridad**, reinicia y confirma la activación.
+6. En la app abre **Bloqueo y avisos → Elegir aplicaciones**, autoriza Tiempo en pantalla y elige, por ejemplo, Instagram. Inicia un bloque de 15 minutos, cambia de app e intenta abrir Instagram. Comprueba que una app que dejaste libre sigue disponible. Al vencer el bloque, vuelve a abrir Instagram y revisa **Mi avance** en Concentra.
+
+El monitor usa el intervalo mínimo de 15 minutos de iOS. Concentra necesita conexión para cargar la página de estudio. Una vez iniciado el bloque, Tiempo en pantalla aplica la restricción en el dispositivo. El dueño del teléfono puede retirar el permiso desde Configuración. Para distribuir la prueba mediante TestFlight, el titular del equipo debe solicitar Family Controls de distribución para la app y su monitor. [Documentación de Apple](https://developer.apple.com/documentation/familycontrols/requesting-the-family-controls-entitlement)
