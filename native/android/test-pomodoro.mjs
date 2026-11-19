@@ -3,9 +3,14 @@ import {execFileSync} from 'node:child_process';
 import assert from 'node:assert/strict';
 const adb=(...args)=>execFileSync('adb',args,{encoding:'utf8'}).trim();
 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
-const app='cl.concentra.estudio', other='com.android.deskclock';
+const app='cl.concentra.estudio';
 assert.equal(adb('shell','getprop','ro.kernel.qemu'),'1','Usar solamente en un emulador recién creado');
-assert.match(adb('shell','pm','path',other),/package:/);
+const launchers=adb('shell','cmd','package','query-activities','--brief','-a','android.intent.action.MAIN','-c','android.intent.category.LAUNCHER');
+const components=launchers.split(/\r?\n/).map(s=>s.trim()).filter(s=>/^[\w.]+\/[\w.$]+$/.test(s));
+const component=components.find(s=>/deskclock|calculator|calendar|contacts|camera|chrome/i.test(s));
+assert.ok(component,'El emulador debe contar con una app de prueba: '+components.join(', '));
+const other=component.split('/')[0];
+console.log('Aplicación disponible para la prueba:',component);
 const prefs='<map><set name="apps"><string>'+other+'</string></set></map>';
 // The chooser is preconfigured only on this dedicated CI device.
 execFileSync('adb',['shell','run-as',app,'sh','-c',"'mkdir -p shared_prefs && cat > shared_prefs/focus.xml'"],{input:prefs});
@@ -42,7 +47,7 @@ try {
  const start=await evaluate("(()=>{setMinutes(1);data.reason='Leer el problema';save();$('start').click();return {end:data.timer?.end,strict:data.timer?.strict,note:$('modalNotice').textContent||$('toast').textContent}})()");
  assert.equal(start.strict,true,JSON.stringify(start));
  console.log('El Pomodoro activó el bloqueo.');
- const launch=()=>adb('shell','monkey','-p',other,'-c','android.intent.category.LAUNCHER','1');
+ const launch=()=>adb('shell','am','start','-n',component);
  const foreground=()=>adb('shell','dumpsys','activity','activities').split('\n').filter(s=>/mResumedActivity|topResumedActivity/.test(s)).join('\n');
  launch();await sleep(1500);const blocked=foreground();assert.ok(blocked && !blocked.includes(other),blocked);
  console.log('Android devolvió al inicio al intentar abrir la app elegida.');
