@@ -99,7 +99,7 @@ sealed class FocusWindow : Form {
     string Command(string command) {
         if (command == "status") return Math.Max(0,end).ToString();
         if (end > Now) return "Ya tienes un bloque protegido en este PC.";
-        if (command == "choose") { Choose(); return "OK"; }
+        if (command == "choose") { BeginInvoke(new Action(Choose)); return "OK"; }
         int minutes;
         if (!command.StartsWith("start:") || !Int32.TryParse(command.Substring(6),out minutes) || minutes < 1 || minutes > 180)
             return "Duración inválida.";

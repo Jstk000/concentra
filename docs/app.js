@@ -240,10 +240,11 @@ function renderTimer(){
   const protectedNow=strictDeadline()>Date.now();
   $('start').hidden=protectedNow;$('stop').hidden=!t||protectedNow;
   if(protectedNow){
-    $('mode').textContent='Bloque protegido';
+    const local=deviceDeadline>Date.now();
+    $('mode').textContent=local?'Bloque protegido':'Bloque en otro dispositivo';
     $('digits').textContent=digits(strictDeadline()-Date.now());
     $('runningNote').hidden=false;
-    $('runningNote').textContent='Las apps elegidas quedan restringidas hasta las '+clockTime(strictDeadline())+'.';
+    $('runningNote').textContent=(local?'Las apps elegidas quedan restringidas hasta las ':'El bloqueo se aplica en el dispositivo que inició la sesión hasta las ')+clockTime(strictDeadline())+'.';
   }
   document.querySelectorAll('[data-min]').forEach(b=>b.setAttribute('aria-pressed',Number(b.dataset.min)===data.minutes));
   const custom=![15,25,50].includes(data.minutes);
@@ -254,12 +255,13 @@ $('start').onclick=()=>{
   if(settle()){refresh();say('¡Bloque completado! Tu avance quedó registrado.');return;}
   const t=data.timer;
   if(!t){
-    askReason('Tu motivo para este bloque','Empezar bloque',reason=>{
+    const begin=reason=>{
       let end=Date.now()+data.minutes*60000;
       if(installedApp){
         const reply=deviceCommand('start:'+data.minutes);
         const deadline=Number(reply);
         if(!Number.isSafeInteger(deadline)||deadline<=Date.now()){
+          if(!reply || reply.includes('Bloqueo y avisos'))openProtection();
           say(reply||'No se pudo activar el bloqueo. Revisa Bloqueo y avisos.');
           return;
         }
@@ -270,7 +272,9 @@ $('start').onclick=()=>{
       if(installedApp)data.timer.strict=true;
       save();renderTimer();schedule();
       $('modal').close();
-    });
+    };
+    if(installedApp&&data.reason)begin(data.reason);
+    else askReason('Tu motivo para este bloque','Empezar bloque',begin);
     return;
   }
   if(t.end===null){t.end=Date.now()+t.left;t.left=null;}
