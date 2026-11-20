@@ -5,11 +5,12 @@
 <meta name="theme-color" content="#173e37"><meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="description" content="Organiza tus bloques de estudio entre clases y sigue tu progreso.">
 <title>Concentra · Estudio digital</title><link rel="icon" href="./icon.png"><link rel="apple-touch-icon" href="./icon.png">
-<link rel="manifest" href="./app.webmanifest"><link rel="stylesheet" href="./style.css?v=perfil2"><script src="./app.js?v=avisos1" defer></script>
-<meta name="robots" content="noindex,nofollow"><meta name="referrer" content="strict-origin-when-cross-origin"><script src="./cuenta.js?v=motivo2" defer></script><script src="./grupo.js?v=perfil2" defer></script><script src="./horario.js?v=perfil2" defer></script><script src="./perfil.js?v=motivo2" defer></script></head>
+<link rel="manifest" href="./app.webmanifest"><link rel="stylesheet" href="./style.css?v=winfocus2"><script src="./app.js?v=winfocus2" defer></script>
+<meta name="robots" content="noindex,nofollow"><meta name="referrer" content="strict-origin-when-cross-origin"><script src="./cuenta.js?v=motivo2" defer></script><script src="./grupo.js?v=perfil2" defer></script><script src="./horario.js?v=perfil2" defer></script><script src="./perfil.js?v=winfocus2" defer></script></head>
 <body>
 <header><div class="bar"><a href="#hoy" class="brand"><i class="brandmark" aria-hidden="true">◒</i>Concentra</a><nav aria-label="Navegación principal"><a href="#hoy">Hoy</a><a href="#horario">Mi horario</a><a href="#avance">Mi avance</a><a href="#grupo">Grupo</a></nav><button class="link" id="accountButton">Iniciar sesión</button><button id="help" class="help" aria-label="Guía para iPhone">?</button></div></header>
 <main>
+<div id="finishBanner" class="finish-banner" hidden><span role="status" id="finishText"></span> <button id="dismissFinish" type="button">Entendido</button></div>
 <div class="profileSync"><small role="status" id="profileState"></small><button id="importStudy" hidden class="link">Importar mis datos anteriores</button><button id="syncStudy" class="link" hidden>Sincronizar</button></div>
 <p class="eyebrow date" id="date"></p>
 <section id="hoy" class="page">
@@ -18,10 +19,12 @@
 <p class="eyebrow timerlabel"><i></i><span id="mode">Sesión de enfoque</span></p>
 <h2 id="sessionTitle">Tiempo de estudiar</h2><div class="digits" id="digits" role="timer">25:00</div>
 <div class="presets" id="presets" role="group" aria-label="Duración del bloque"><button data-min="15">15 min</button><button data-min="25">25 min</button><button data-min="50">50 min</button><button id="custom">Otra</button></div>
-<p id="runningNote" hidden></p><div class="actions"><button id="start" class="primary">▶　Empezar bloque</button><button id="stop" hidden>Terminar</button></div>
+<label id="focusModeField" class="focus-mode" hidden>Modo de la sesión <select id="focusMode"><option value="normal">Solo temporizador</option><option value="focus">Concentración · permite pausar</option><option value="strict">Estricto · salida con confirmación</option></select></label>
+<p id="modeHint" hidden></p><p id="runningNote" hidden></p><div class="actions"><button id="start" class="primary">▶　Empezar bloque</button><button id="stop" hidden>Terminar</button></div>
 <button id="medina" class="medina-link">Me estoy distrayendo</button>
 <button id="proteger" class="medina-link">Bloqueo y avisos</button>
-<button id="timerAlerts" class="medina-link" aria-pressed="false" hidden>Activar aviso al terminar</button>
+<button id="timerAlerts" class="medina-link">Sonido y avisos</button>
+
 </div></article>
 <aside><section class="card objective"><p class="eyebrow"><b class="dot"></b> Mi objetivo</p><h2>¿Qué vas a estudiar?</h2><label for="subject">Ramo</label><input id="subject" maxlength="60" placeholder="Ej. Cálculo II" list="subjects"><datalist id="subjects"></datalist><label for="goal">Meta de la sesión</label><textarea id="goal" maxlength="160" rows="2" placeholder="Ej. Resolver tres integrales"></textarea></section>
 <div class="scheduleHint"><div class="row"><b>Entre clases</b><a href="#horario" aria-label="Ver mi horario">↗</a></div><p id="suggestion"></p><button id="fit" hidden></button></div></aside></div>

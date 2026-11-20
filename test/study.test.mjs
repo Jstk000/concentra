@@ -27,5 +27,11 @@ test('el avance se recupera en otra sesión de la misma cuenta y una revisión a
  assert.deepEqual((await (await post(again)).json()).state,state);
  assert.equal((await post(again,{revision:0,state:{...state,history:[]}})).status,409);
  assert.equal((await (await post(two)).json()).state,null);
+ const partial={...h,id:'block-2',minutes:5,plannedMinutes:25,partial:true,goalDone:true};
+ const withPartial={...state,history:[h,partial]};
+ assert.equal((await post(one,{state:withPartial,revision:1})).status,200);
+ assert.deepEqual((await (await post(again)).json()).state.history,[h,partial]);
+ const invalid={...state,history:[{...partial,plannedMinutes:3}]};
+ assert.equal((await post(again,{state:invalid,revision:2})).status,400);
  assert.equal((await post('')).status,401);
 });

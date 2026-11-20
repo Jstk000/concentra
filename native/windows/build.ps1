@@ -11,5 +11,8 @@ $lib = Join-Path $Package 'lib\net462'
 $core = "$lib\Microsoft.Web.WebView2.Core.dll"
 $forms = "$lib\Microsoft.Web.WebView2.WinForms.dll"
 $loader = "$Package\runtimes\win-x64\native\WebView2Loader.dll"
-& "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319\csc.exe" /nologo /codepage:65001 /optimize+ /platform:x64 /target:winexe "/out:$Output" /r:System.Drawing.dll /r:System.Windows.Forms.dll "/r:$core" "/r:$forms" "/resource:$core,Microsoft.Web.WebView2.Core.dll" "/resource:$forms,Microsoft.Web.WebView2.WinForms.dll" "/resource:$loader,WebView2Loader.dll" "/resource:$PSScriptRoot\WebView2-LICENSE.txt,WebView2-LICENSE.txt" "$PSScriptRoot\Bootstrap.cs" "$PSScriptRoot\FocusWindow.cs"
+$web = (Resolve-Path "$PSScriptRoot\..\..\docs").Path
+$assets = @('index.html','style.css','app.js','cuenta.js','grupo.js','perfil.js','horario.js','timer-worker.js','app.webmanifest','icon.png') | ForEach-Object { "/resource:$web\$_,site.$_" }
+$wpf = "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319\WPF"
+& "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319\csc.exe" /nologo /codepage:65001 /optimize+ /platform:x64 /target:winexe "/out:$Output" @assets "/resource:$PSScriptRoot\campana.wav,campana.wav" "/r:$wpf\UIAutomationClient.dll" "/r:$wpf\UIAutomationTypes.dll" "/r:$wpf\WindowsBase.dll" /r:System.Drawing.dll /r:System.Windows.Forms.dll "/r:$core" "/r:$forms" "/resource:$core,Microsoft.Web.WebView2.Core.dll" "/resource:$forms,Microsoft.Web.WebView2.WinForms.dll" "/resource:$loader,WebView2Loader.dll" "/resource:$PSScriptRoot\WebView2-LICENSE.txt,WebView2-LICENSE.txt" "$PSScriptRoot\Bootstrap.cs" "$PSScriptRoot\FocusWindow.cs" "$PSScriptRoot\BrowserShield.cs"
 if ($LASTEXITCODE -ne 0) { throw 'No se pudo compilar el ejecutable.' }

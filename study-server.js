@@ -21,7 +21,7 @@ async function studyProfile(request,db){
  const validList=(list,check)=>Array.isArray(list)&&list.every(check)&&new Set(list.map(x=>x.id)).size===list.length;
  if(!Number.isSafeInteger(revision)||revision<0||!s||!str(s.subject,60)||!str(s.goal,160)||!minutes(s.minutes)||
    !validList(s.classes,c=>c&&validId(c.id)&&str(c.name,60)&&Number.isInteger(c.day)&&c.day>=0&&c.day<=6&&time(c.from)&&time(c.until)&&c.until>c.from)||
-   !validList(s.history,h=>block(h)&&timestamp(h.at))||
+   !validList(s.history,h=>block(h)&&timestamp(h.at)&&(h.partial===undefined||h.partial===true&&minutes(h.plannedMinutes)&&h.plannedMinutes>=h.minutes))||
    !(s.timer===null||block(s.timer)&&validReason(s.timer.reason)&&(timestamp(s.timer.end)||s.timer.end===null&&Number.isFinite(s.timer.left)&&s.timer.left>=0&&s.timer.left<=s.timer.minutes*60000))||
    !validReason(s.reason)||s.blockSites!==undefined&&(!Array.isArray(s.blockSites)||!s.blockSites.every(d=>str(d,80))))return json({message:'Revisa los datos del horario y de los bloques.'},400);
  const safe={subject:s.subject,goal:s.goal,minutes:s.minutes,classes:s.classes,history:s.history,timer:s.timer,reason:s.reason,blockSites:s.blockSites};

@@ -1,12 +1,15 @@
 using System;
 using System.IO;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows.Forms;
 
 static class Bootstrap {
+    [DllImport("user32.dll")] static extern bool SetProcessDpiAwarenessContext(IntPtr context);
     [STAThread]
     static void Main() {
+        try { SetProcessDpiAwarenessContext(new IntPtr(-4)); } catch(EntryPointNotFoundException) {}
         Application.EnableVisualStyles();
         Application.SetCompatibleTextRenderingDefault(false);
         bool first;

@@ -10,3 +10,5 @@ dialog details{margin:16px 0;padding:12px;background:#f2f3e8;border-radius:10px}
 
 #modalNotice:empty{display:none}#modalNotice{color:#214e43;font-size:14px;font-weight:600}#modalBody .groupAction{white-space:normal}#login,#accountButton{min-height:44px}
 .profileSync{display:flex;align-items:center;flex-wrap:wrap;gap:6px 16px;margin-bottom:16px}.profileSync:has(#syncStudy[hidden]):has(#importStudy[hidden]){margin-bottom:10px}
+
+.focus-mode{display:block;margin:.7rem 0}.focus-mode select{max-width:100%;padding:.45rem;font:inherit;border-radius:.45rem}.finish-banner{padding:.7rem;background:#fff9e8;color:#183d33;border-radius:.5rem;margin:.5rem 0}.finish-banner button{margin-left:.4rem}.focus-check{width:auto}

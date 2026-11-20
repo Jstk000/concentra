@@ -37,6 +37,11 @@
    const result={...remote};
    for(const f of fields)if(!equal(local[f],base[f]))result[f]=local[f];
    result.history=mergeRows(base.history,local.history,remote.history).sort((a,b)=>a.at-b.at);
+   // Another device may already have saved these minutes as a partial session.
+   if(base.timer){
+     const first=remote.history.find(h=>h.id===base.timer.id);
+     if(first)result.history=result.history.map(h=>h.id===first.id?first:h);
+   }
    result.classes=mergeRows(base.classes,local.classes,remote.classes);
    // A sleeping browser may finish an older countdown after another device paused it.
    const previous=base.timer;
