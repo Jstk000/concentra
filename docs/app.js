@@ -150,7 +150,7 @@ function say(s) {
 }
 function dialog(title, body) { $('modalNotice').textContent=''; $('modalTitle').textContent=title; $('modalBody').innerHTML=body; if (!$('modal').open) $('modal').showModal(); }
 $('close').onclick=()=> $('modal').close();
-$('help').onclick=()=>dialog('Estudiar en el iPhone', `<h3>Agregar Concentra a Inicio</h3><p>En Safari, abre Compartir y elige Agregar a Inicio. Si aparece la opción Abrir como app web, actívala. Abre el ícono para empezar a registrar tus sesiones ahí.</p><h3>Quedarte en una sola app</h3><p>Activa Acceso guiado en Configuración → Accesibilidad y define tu código. Abre Concentra desde Inicio, presiona tres veces el botón lateral e inicia Acceso guiado. Al terminar, finaliza también Acceso guiado.</p><p>Durante Acceso guiado debes salir de ese modo para hacer una llamada de emergencia. <a href="https://support.apple.com/es-cl/111795" target="_blank" rel="noreferrer">Instrucciones de Apple</a></p><h3>Si necesitas otras apps para estudiar</h3><p>En Configuración → Enfoque puedes crear un modo Estudio, elegir qué avisos recibir y programar su horario.</p><h3>Tus datos</h3><p>Con sesión iniciada, tu horario y tu avance se guardan en tu cuenta. Como invitado, quedan en este navegador. El reloj recupera el tiempo transcurrido al volver a la app. El aviso de término aparece dentro de Concentra.</p>`);
+$('help').onclick=()=>dialog('Estudiar en el iPhone', `<h3>Agregar Concentra a Inicio</h3><p>En Safari, abre Compartir y elige Agregar a Inicio. Si aparece la opción Abrir como app web, actívala. Abre el ícono para empezar a registrar tus sesiones ahí.</p><h3>Quedarte en una sola app</h3><p>Activa Acceso guiado en Configuración → Accesibilidad y define tu código. Abre Concentra desde Inicio, presiona tres veces el botón lateral e inicia Acceso guiado. Al terminar, finaliza también Acceso guiado.</p><p>Durante Acceso guiado debes salir de ese modo para hacer una llamada de emergencia. <a href="https://support.apple.com/es-cl/111795" target="_blank" rel="noreferrer">Instrucciones de Apple</a></p><h3>Si necesitas otras apps para estudiar</h3><p>En Configuración → Enfoque puedes crear un modo Estudio, elegir qué avisos recibir y programar su horario.</p><h3>Tus datos</h3><p>Con sesión iniciada, tu horario y tu avance se guardan en tu cuenta. Como invitado, quedan en este navegador. El reloj recupera el tiempo transcurrido al volver a la app. Puedes activar el aviso al terminar y dejar Concentra abierta mientras estudias en otra pestaña.</p>`);
 function go() {
   const name=location.hash.startsWith('#invitar=')?'grupo':['hoy','horario','avance','grupo'].includes(location.hash.slice(1))?location.hash.slice(1):'hoy';
   document.querySelectorAll('.page').forEach(p=>p.hidden=p.id!==name);
@@ -223,11 +223,58 @@ $('custom').onclick=()=>{
   $('durationForm').onsubmit=e=>{e.preventDefault();setMinutes(Number($('duration').value));$('modal').close();};
 };
 function remaining(t){return t.end===null?t.left:Math.max(0,t.end-Date.now());}
+const alertsKey='concentra.avisos.temporizador';
+const alertsButton=$('timerAlerts');
+const supportsAlerts=window.isSecureContext && typeof window.Notification?.requestPermission==='function';
+function updateAlertButton(){
+  if(!alertsButton || !supportsAlerts)return;
+  const enabled=deviceStore.getItem(alertsKey)==='on' && Notification.permission==='granted';
+  alertsButton.hidden=false;
+  alertsButton.setAttribute('aria-pressed',String(enabled));
+  alertsButton.textContent=enabled?'Aviso al terminar activado':'Activar aviso al terminar';
+}
+async function timerWorker(){
+  if(!('serviceWorker' in navigator))return null;
+  await navigator.serviceWorker.register('./timer-worker.js');
+  return navigator.serviceWorker.ready;
+}
+if(alertsButton)alertsButton.onclick=async()=>{
+  if(!supportsAlerts)return;
+  if(deviceStore.getItem(alertsKey)==='on' && Notification.permission==='granted'){
+    deviceStore.removeItem(alertsKey);updateAlertButton();return;
+  }
+  alertsButton.disabled=true;
+  try{
+    const permission=await Notification.requestPermission();
+    if(permission!=='granted'){
+      say(permission==='denied'?'Para recibir el aviso, permite notificaciones en los ajustes de este sitio.':'Puedes activar el aviso cuando quieras.');
+      return;
+    }
+    await timerWorker();
+    deviceStore.setItem(alertsKey,'on');
+    say('Recibirás un aviso al terminar. Deja Concentra abierta en una pestaña.');
+  }catch{say('No se pudo activar el aviso en este navegador.');}
+  finally{alertsButton.disabled=false;updateAlertButton();}
+};
+updateAlertButton();
+async function notifyTimerEnd(timer){
+  if(!supportsAlerts || deviceStore.getItem(alertsKey)!=='on' || Notification.permission!=='granted' || Date.now()-timer.end>120000)return;
+  const title='¡Terminó tu Pomodoro!';
+  const options={body:'Completaste '+timer.minutes+' min de estudio. Es momento de descansar.',tag:'concentra-'+timer.id,icon:'./icon.png'};
+  try{
+    const worker=await timerWorker();
+    if(worker)await worker.showNotification(title,options);
+    else new Notification(title,options);
+  }catch{say('¡Terminó tu Pomodoro!');}
+}
 function digits(ms){const s=Math.ceil(ms/1000);return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');}
 function settle() {
   const t=data.timer;
   if(!t||t.end===null||t.end>Date.now())return false;
-  if(!data.history.some(h=>h.id===t.id))data.history.push({id:t.id,subject:t.subject,goal:t.goal,minutes:t.minutes,at:t.end});
+  if(!data.history.some(h=>h.id===t.id)){
+    data.history.push({id:t.id,subject:t.subject,goal:t.goal,minutes:t.minutes,at:t.end});
+    void notifyTimerEnd(t);
+  }
   data.timer=null;save();return true;
 }
 function renderTimer(){
