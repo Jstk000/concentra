@@ -104,9 +104,12 @@ const installedApp = navigator.userAgent.includes('ConcentraNative/1');
 const windowsApp=navigator.userAgent.includes('ConcentraWindows/2');
 const desktopModes=windowsApp || (!installedApp && !/Android|iPhone|iPad|iPod/.test(navigator.userAgent));
 const focusDomains=['instagram.com','tiktok.com','x.com','reddit.com','twitch.tv','youtube.com'];
-function chosenSites(){return (data.blockSites??['instagram.com']).filter(site=>focusDomains.includes(site));}
+function chosenSites(){return (data.blockSites??['instagram.com']).filter(validSite);}
 function deviceCommand(command){
-  try { return window.prompt('concentra-device-v1',command) || ''; }
+  try {
+    if(navigator.userAgent.includes('ConcentraBridge/1'))return window.chrome.webview.hostObjects.sync.concentra.Execute(command)||'';
+    return window.prompt('concentra-device-v1',command)||'';
+  }
   catch { return ''; }
 }
 let deviceDeadline = installedApp ? Number(deviceCommand('status')) || 0 : 0;
@@ -114,19 +117,7 @@ function strictDeadline(){
   return Math.max(windowsApp ? 0 : deviceDeadline, data.timer?.strict === true ? data.timer.end || 0 : 0);
 }
 function openProtection(){
-  if(windowsApp){
-    dialog('Apps y sitios de este PC','<p>En concentración, las apps elegidas se minimizan y las páginas seleccionadas se cubren en Chrome y Edge. Puedes cambiar de pestaña y seguir buscando.</p><fieldset id="winSites"><legend>Páginas que quiero cubrir</legend>'+focusDomains.map(d=>'<label><input type="checkbox" class="focus-check" value="'+d+'" '+(chosenSites().includes(d)?'checked':'')+'> '+d+'</label>').join('')+'</fieldset><button id="chooseApps" class="solid">Elegir programas de Windows</button>');
-    $('winSites').disabled=!!data.timer;
-    $('winSites').onchange=()=>{data.blockSites=[...$('winSites').querySelectorAll(':checked')].map(el=>el.value);save();};
-    $('chooseApps').disabled=!!data.timer;
-    $('chooseApps').onclick=()=>{const reply=deviceCommand('choose');if(reply!=='OK')say(reply);};
-    if(deviceDeadline>Date.now() && (!data.timer || data.timer.owner!==localOwner)){
-      const exit=document.createElement('button');exit.className='link';exit.textContent='Liberar el bloqueo activo de este PC';
-      exit.onclick=()=>{if(deviceCommand('emergency')==='OK'){deviceDeadline=0;$('modal').close();refresh();}};
-      $('modalBody').append(exit);
-    }
-    return;
-  }
+  if(desktopModes){openDesktopProtection();return;}
   if(installedApp){
     dialog('Apps que quiero bloquear','<p>Elige las apps de este dispositivo una vez. Al empezar un bloque, quedan restringidas hasta que se cumpla el tiempo.</p><button class="solid" id="chooseApps">Elegir aplicaciones</button>');
     $('chooseApps').disabled=strictDeadline()>Date.now();
@@ -144,7 +135,7 @@ function openProtection(){
   const active=data.timer?.end>Date.now();
   const phone='<details '+(ios?'open':'')+'><summary>iPhone · Enfoque y Acceso guiado</summary><h3>Silenciar notificaciones</h3><p>Una vez, crea un enfoque llamado Estudio en Configuración → Enfoque y elige las personas y apps que pueden avisarte.</p><p>En Atajos, crea un atajo llamado <b>Concentra Estudio</b>. Agrega la acción para obtener fechas de la <b>Entrada del atajo</b>. Luego agrega la acción de configurar enfoque: activa <b>Estudio</b> hasta una <b>Hora</b> y usa la fecha de la primera acción como hora final.</p><a href="shortcuts://create-shortcut">Crear atajo en el iPhone</a><p>Con el reloj en marcha, usa el botón para pasar al atajo la hora de término. Si pausas antes, desactiva Estudio en el Centro de control. Al continuar puedes enviar la nueva hora.</p>'+(active?'<a class="solid groupAction" href="shortcuts://run-shortcut?name=Concentra%20Estudio&amp;input=text&amp;text='+encodeURIComponent(new Date(data.timer.end).toISOString())+'">Activar Estudio hasta '+clockTime(data.timer.end)+'</a>':'<p><b>Inicia o continúa una sesión para activar el atajo.</b></p>')+'<h3>Impedir que cambies de app</h3><p>Activa Acceso guiado en Configuración → Accesibilidad y define un código. Vuelve a Concentra desde su ícono de Inicio y presiona tres veces el botón lateral. Elige Acceso guiado e inicia la restricción. Finalízala cuando termines. Para hacer una llamada de emergencia debes salir de Acceso guiado.</p><a href="https://support.apple.com/es-cl/111795" target="_blank" rel="noreferrer">Ver los controles de salida de mi versión de iOS</a></details>';
   const downloads='https://github.com/Jstk000/concentra/releases/download/bloqueo-v0.1/';
-  const native='<h3>Concentra con bloqueo de apps</h3><p>Elige las aplicaciones una vez y empieza el Pomodoro dentro de la app instalada. En Windows puedes pausar, minimizar programas elegidos y cubrir Instagram dentro de Chrome o Edge.</p><p><a href="https://github.com/Jstk000/concentra/releases/download/windows-v0.2/Concentra-Windows-0.2.exe">Descargar para Windows</a> · <a href="'+downloads+'Concentra-Android.apk">Descargar para Android</a></p><p>iPhone en prueba con Xcode: <a href="'+downloads+'Concentra-Xcode.zip">descargar proyecto para Mac</a>.</p>';
+  const native='<h3>Versiones nativas anteriores</h3><p>Elige las aplicaciones una vez y empieza el Pomodoro dentro de la app instalada. En Windows puedes pausar, minimizar programas elegidos y cubrir Instagram dentro de Chrome o Edge.</p><p><a href="https://github.com/Jstk000/concentra/releases/download/windows-v0.2/Concentra-Windows-0.2.exe">Windows 0.2</a> · <a href="'+downloads+'Concentra-Android.apk">Prototipo Android</a></p><p>iPhone en prueba con Xcode: <a href="'+downloads+'Concentra-Xcode.zip">descargar proyecto para Mac</a>.</p>';
   dialog('Bloqueo y avisos',native+(ios?phone+desktop:desktop+phone));
   $('modalBody').querySelector('fieldset').onchange=e=>{data.blockSites=[...e.currentTarget.querySelectorAll(':checked')].map(el=>el.value);save();};
   showProtectionStatus();
@@ -238,8 +229,9 @@ $('medina').onclick=openMedina;
 function setMinutes(n){if(data.timer)return;data.minutes=n;save(); renderTimer();}
 document.querySelectorAll('[data-min]').forEach(b=>b.onclick=()=>setMinutes(Number(b.dataset.min)));
 $('custom').onclick=()=>{
-  dialog('Duración del bloque','<form id="durationForm"><label for="duration">Minutos de estudio</label><input type="number" min="1" max="180" step="1" required id="duration" value="'+data.minutes+'"><button class="solid">Usar duración</button></form>');
-  $('durationForm').onsubmit=e=>{e.preventDefault();setMinutes(Number($('duration').value));$('modal').close();};
+  const phase=restState()?.phase||'study';
+  dialog('Duración del intervalo','<form id="durationForm"><label for="duration">'+phaseNames[phase]+' (minutos)</label><input type="number" min="1" max="180" step="1" required id="duration" value="'+phaseMinutes(phase)+'"><button class="solid">Guardar duración</button></form>');
+  $('durationForm').onsubmit=e=>{e.preventDefault();setPhaseMinutes(phase,$('duration').valueAsNumber);renderTimer();$('modal').close();};
 };
 function remaining(t){return t.end===null?t.left:Math.max(0,t.end-Date.now());}
 const alertsKey='concentra.avisos.temporizador';
@@ -247,26 +239,55 @@ const supportsAlerts=window.isSecureContext && typeof window.Notification?.reque
 const soundOn=()=>deviceStore.getItem('concentra.sonido')!=='off';
 const visualOn=()=>deviceStore.getItem('concentra.aviso.visual')!=='off';
 const desktopAlertsOn=()=>windowsApp?deviceStore.getItem(alertsKey)!=='off':supportsAlerts && Notification.permission==='granted' && deviceStore.getItem(alertsKey)!=='off';
-let audioContext;
+let audioContext, alarmId='', soundGeneration=0;
+const clips=new Map(), sources=new Set();
+function bufferFor(tone){
+  if(!clips.has(tone))clips.set(tone,fetch('./'+tone+'.wav').then(r=>{
+    if(!r.ok)throw Error('Audio');return r.arrayBuffer();
+  }).then(bytes=>audioContext.decodeAudioData(bytes)).catch(e=>{clips.delete(tone);throw e;}));
+  return clips.get(tone);
+}
 function armAudio(){
   if(windowsApp || !soundOn() || !window.AudioContext)return;
-  try{audioContext??=new AudioContext();if(audioContext.state==='suspended')audioContext.resume().catch(()=>{});}catch{}
+  try{
+    audioContext??=new AudioContext();
+    if(audioContext.state==='suspended')audioContext.resume().catch(()=>{});
+    void bufferFor(alarmPrefs().tone).catch(()=>{});void bufferFor('descanso').catch(()=>{});
+  }catch{}
 }
 document.addEventListener('pointerdown',armAudio,{passive:true});
 document.addEventListener('keydown',armAudio);
-function playBell(){
-  if(!soundOn() || audioContext?.state!=='running')return false;
-  const at=audioContext.currentTime;
-  for(const [offset,note] of [[0,659],[0.24,784],[0.52,988]]){
-    const osc=audioContext.createOscillator(),volume=audioContext.createGain();
-    const start=at+offset,end=start+0.42;
-    osc.frequency.value=note;volume.gain.setValueAtTime(0.001,start);
-    volume.gain.exponentialRampToValueAtTime(0.16,start+0.025);
-    volume.gain.exponentialRampToValueAtTime(0.001,end);
-    osc.connect(volume);volume.connect(audioContext.destination);
-    osc.onended=()=>{osc.disconnect();volume.disconnect();};osc.start(start);osc.stop(end);
+function silence(){
+  soundGeneration++;
+  for(const node of sources){try{node.stop();}catch{}}
+  sources.clear();
+}
+function ackAlarm(id=alarmId,broadcast=true){
+  if(!id)return;
+  if(broadcast && id!=='preview'){
+    deviceStore.setItem('concentra.aviso.leido',id);
+    const pending=readPending();
+    if(pending?.id===id)deviceStore.removeItem('concentra.aviso.pendiente.'+studyKey());
   }
-  return true;
+  if(windowsApp)deviceCommand('ack:'+id);
+  if(alarmId!==id)return;
+  silence();alarmId='';$('finishBanner').hidden=true;if($('testAlert'))$('testAlert').textContent='Probar aviso';
+}
+window.addEventListener('storage',e=>{if(e.key==='concentra.aviso.leido'&&e.newValue===alarmId)ackAlarm(alarmId,false);});
+async function playBell(id,rest){
+  if(!soundOn()||!alarmPrefs().volume||audioContext?.state!=='running')return false;
+  const gen=soundGeneration,p=alarmPrefs();
+  try {
+    const buffer=await bufferFor(rest?'descanso':p.tone);
+    if(gen!==soundGeneration||alarmId!==id)return false;
+    const at=audioContext.currentTime;
+    for(let i=0;i<p.repeats;i++){
+      const node=audioContext.createBufferSource(),gain=audioContext.createGain();
+      node.buffer=buffer;gain.gain.value=p.volume/100;node.connect(gain);gain.connect(audioContext.destination);
+      sources.add(node);node.onended=()=>{sources.delete(node);node.disconnect();gain.disconnect();};node.start(at+i*8);
+    }
+    return true;
+  }catch{return false;}
 }
 async function showDesktopNotice(title,body,tag){
   const options={body,tag,silent:true,icon:'./icon.png'};
@@ -279,21 +300,41 @@ async function showDesktopNotice(title,body,tag){
   }
   new Notification(title,options);
 }
+function readPending(){
+  try{return JSON.parse(deviceStore.getItem('concentra.aviso.pendiente.'+studyKey()));}catch{return null;}
+}
+function restoreFinish(){
+  const pending=readPending();
+  if(pending?.id && pending.id!==deviceStore.getItem('concentra.aviso.leido')){alarmId=pending.id;showFinish(pending.text);}
+}
+navigator.serviceWorker?.addEventListener('message',e=>{if(alarmId&&e.data?.ack==='concentra-'+alarmId)ackAlarm();});
 function showFinish(message){
   if(!visualOn()||!$('finishBanner'))return;
   $('finishText').textContent=message;$('finishBanner').hidden=false;
 }
-if($('dismissFinish'))$('dismissFinish').onclick=()=>{$('finishBanner').hidden=true;};
+$('dismissFinish').onclick=()=>ackAlarm();
+function openFinishedRest(id){
+  refresh();
+  const next=restState();
+  if(!id || next?.afterId!==id || data.timer)return;
+  ackAlarm(id);location.hash='hoy';go();$('start').focus();
+}
+$('finishRestAction').onclick=()=>openFinishedRest(alarmId);
 function openAlerts(){
-  dialog('Sonido y avisos','<label><input id="enableSound" class="focus-check" type="checkbox"> Sonido de campana</label><label><input id="enableVisual" class="focus-check" type="checkbox"> Aviso dentro de Concentra</label><label><input id="enableDesktop" class="focus-check" type="checkbox"> Aviso en el escritorio</label><p id="alertHelp"></p><button id="testAlert" class="solid">Probar aviso</button>');
+  dialog('Ajustes',settingTabs('alarm')+ '<fieldset id="tone" class="tones"><legend>Sonido</legend>'+Object.entries(melodies).map(([v,n])=>'<label><input type="radio" name="melody" value="'+v+'"><span><b>'+n+'</b><small>'+({campana:'Dos resonancias y un cierre cálido',pulso:'Teclas suaves y definidas',acorde:'Acordes largos y aireados',brio:'Percusión con más ritmo'})[v]+'</small></span></label>').join('')+'</fieldset><label for="level">Volumen · <output id="levelValue"></output></label><input type="range" id="level" min="0" max="100"><div class="setting-row"><label for="rings">Repeticiones</label><select id="rings"><option>1</option><option>2</option><option>3</option></select></div><label><input id="enableSound" class="focus-check" type="checkbox"> Reproducir sonido</label><label><input id="enableVisual" class="focus-check" type="checkbox"> Aviso dentro de Concentra</label><label><input id="enableDesktop" class="focus-check" type="checkbox"> Aviso en el escritorio</label><p id="alertHelp"></p><button id="testAlert" class="solid">Probar aviso</button>');
+  const prefs=alarmPrefs();$('tone').querySelector('[value="'+prefs.tone+'"]').checked=true;$('level').value=prefs.volume;$('levelValue').textContent=prefs.volume+' %';$('rings').value=prefs.repeats;
+  $('tone').onchange=e=>{if(alarmId==='preview')ackAlarm();deviceStore.setItem('concentra.melodia',e.target.value);syncNativeAlarm();armAudio();};
+  $('level').oninput=()=>{$('levelValue').textContent=$('level').value+' %';deviceStore.setItem('concentra.volumen',$('level').value);};
+  $('level').onchange=syncNativeAlarm;
+  $('rings').onchange=()=>{deviceStore.setItem('concentra.repeticiones',$('rings').value);syncNativeAlarm();};
   $('enableSound').checked=soundOn();$('enableVisual').checked=visualOn();$('enableDesktop').checked=desktopAlertsOn();
   $('enableDesktop').disabled=!windowsApp&&!supportsAlerts;
   function help(){
-    $('alertHelp').textContent=windowsApp?'La app avisa incluso minimizada.':!supportsAlerts?'Este navegador admite el aviso dentro de la página.':Notification.permission==='denied'?'Chrome bloquea las notificaciones de Concentra. En los permisos del sitio cambia Notificaciones a Permitir.':'Deja la pestaña abierta. Si Windows silencia los avisos, revisa No molestar y el volumen de Chrome.';
+    $('alertHelp').textContent=windowsApp?'Windows guarda el aviso en su centro de notificaciones (Win + N). Si tienes activado No molestar, el banner puede quedar silenciado.':!supportsAlerts?'Este navegador admite el aviso dentro de la página.':Notification.permission==='denied'?'Chrome bloquea las notificaciones de Concentra. En los permisos del sitio cambia Notificaciones a Permitir.':'Deja la pestaña abierta. Si Windows silencia los avisos, revisa No molestar y el volumen de Chrome.';
   }
   function updateNative(){if(windowsApp)deviceCommand('alerts:'+(soundOn()?'1':'0')+':'+(desktopAlertsOn()?'1':'0'));}
   help();
-  $('enableSound').onchange=e=>{deviceStore.setItem('concentra.sonido',e.target.checked?'on':'off');armAudio();updateNative();};
+  $('enableSound').onchange=e=>{if(!e.target.checked&&alarmId==='preview')ackAlarm();deviceStore.setItem('concentra.sonido',e.target.checked?'on':'off');armAudio();updateNative();};
   $('enableVisual').onchange=e=>{deviceStore.setItem('concentra.aviso.visual',e.target.checked?'on':'off');};
   $('enableDesktop').onchange=async e=>{
     const input=e.target;const want=input.checked;
@@ -303,33 +344,40 @@ function openAlerts(){
     }catch{input.checked=false;say('Revisa los permisos de notificación de este sitio.');}
   };
   $('testAlert').onclick=async()=>{
-    const text='Prueba de fin de Pomodoro';armAudio();
-    if(windowsApp)deviceCommand('test:'+(soundOn()?'1':'0')+':'+(desktopAlertsOn()?'1':'0'));
+    if(alarmId==='preview'){ackAlarm();$('testAlert').textContent='Probar aviso';return;}
+    if(alarmId)ackAlarm();
+    alarmId='preview';armAudio();
+    if(windowsApp){syncNativeAlarm();deviceCommand('test:'+(soundOn()?'1':'0')+':'+(desktopAlertsOn()?'1':'0'));if(desktopAlertsOn() && deviceCommand('noticeSent')!=='1')say('Windows no aceptó la notificación. Revisa Configuración → Sistema → Notificaciones → Concentra.');}
     else{
-      if(soundOn()){try{await audioContext?.resume();}catch{}if(!playBell()){say('El navegador no pudo reproducir la campana. Revisa el volumen y vuelve a probar.');return;}}
-      if(desktopAlertsOn())try{await showDesktopNotice(text,'Los avisos de Concentra están activos.','concentra-prueba');}catch{say('Windows o el navegador impidió mostrar el aviso.');return;}
+      if(soundOn()&&alarmPrefs().volume){try{await audioContext?.resume();}catch{}if(!await playBell('preview',false))say('El navegador no pudo reproducir el sonido.');}
+      if(desktopAlertsOn())try{await showDesktopNotice('Prueba de alarma','Así se verá tu aviso.','concentra-prueba');}catch{say('Revisa el permiso de notificaciones.');}
     }
-    $('modal').close();showFinish(text);say('Prueba realizada con tus ajustes.');
+    $('finishRestAction').hidden=true;showFinish('Prueba de alarma');$('testAlert').textContent='Detener prueba';
   };
 }
-if($('timerAlerts')){$('timerAlerts').hidden=false;$('timerAlerts').onclick=openAlerts;}
 async function notifyTimerEnd(timer){
-  showFinish('¡Terminó tu Pomodoro! Completaste '+timer.minutes+' min.');
-  if(windowsApp || timer.owner && timer.owner!==localOwner || Date.now()-timer.end>120000)return;
+  if(timer.owner&&timer.owner!==localOwner)return;
+  if(deviceStore.getItem('concentra.aviso.leido')===timer.id)return;
+  if(alarmId!==timer.id){silence();alarmId=timer.id;}
+  const title=timer.rest?'Terminó tu descanso':'Terminó tu bloque de estudio';
+  const body=timer.rest?'Puedes empezar otro bloque.':'Completaste '+timer.minutes+' min.';
+  if(visualOn())deviceStore.setItem('concentra.aviso.pendiente.'+studyKey(),JSON.stringify({id:timer.id,text:title+'. '+body}));
+  showFinish(title+'. '+body);
+  if(windowsApp || Date.now()-timer.end>120000)return;
   const key='concentra.ultimoAviso.'+studyKey();
   async function emit(){
     if(deviceStore.getItem(key)===timer.id)return;
     deviceStore.setItem(key,timer.id);
-    if(desktopAlertsOn())try{await showDesktopNotice('¡Terminó tu Pomodoro!','Completaste '+timer.minutes+' min. Es momento de descansar.','concentra-'+timer.id);}
-    catch{say('Terminó tu bloque. Revisa los permisos de notificación.');}
+    if(desktopAlertsOn())try{await showDesktopNotice(title,body,'concentra-'+timer.id);}
+    catch{say('Revisa el permiso de notificaciones.');}
   }
-  function ringOnce(){
-    if(deviceStore.getItem(key+'.campana')!==timer.id && playBell())deviceStore.setItem(key+'.campana',timer.id);
+  async function ring(){
+    if(deviceStore.getItem(key+'.campana')!==timer.id && await playBell(timer.id,timer.rest))deviceStore.setItem(key+'.campana',timer.id);
   }
   if(navigator.locks){
-    await navigator.locks.request(key+'.campana',ringOnce);
+    await navigator.locks.request(key+'.campana',ring);
     await navigator.locks.request(key,emit);
-  }else{ringOnce();await emit();}
+  }else{await ring();await emit();}
 }
 function digits(ms){const s=Math.ceil(ms/1000);return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');}
 function settle() {
@@ -339,13 +387,18 @@ function settle() {
     data.history.push({id:t.id,subject:t.subject,goal:t.goal,minutes:t.minutes,at:t.end});
     void notifyTimerEnd(t);
   }
-  data.timer=null;save();return true;
+  data.timer=null;save();nextRest(t);return true;
 }
 function renderTimer(){
   const t=data.timer,paused=t&&t.end===null;
+  const interval=desktopModes&&!t?restState():null;
+  document.querySelector('.timer').dataset.state=paused||interval?.id&&interval.end===null?'paused':interval?'rest':t?'active':'idle';
+  $('finishRestAction').hidden=!alarmId||interval?.afterId!==alarmId;
+
   $('digits').textContent=digits(t?remaining(t):data.minutes*60000);
   $('mode').textContent=t?(paused?'Sesión en pausa':'Sesión en curso'):'Sesión de enfoque';
-  $('sessionTitle').textContent=t?t.subject||'Bloque de estudio':'Tiempo de estudiar';
+  $('sessionTitle').textContent=t?.subject||'';
+  $('sessionTitle').hidden=!t?.subject&&!interval;
   $('presets').hidden=!!t;$('runningNote').hidden=!t;
   $('runningNote').textContent=t?(t.goal||'Una tarea a la vez.'):'';
   $('start').textContent=t?(paused?'▶　Continuar':'Ⅱ　Pausar'):'▶　Empezar bloque';
@@ -364,6 +417,7 @@ function renderTimer(){
     $('runningNote').hidden=false;
     $('runningNote').textContent=(local?'Las apps elegidas quedan restringidas hasta las ':'El bloqueo se aplica en el dispositivo que inició la sesión hasta las ')+clockTime(strictDeadline())+'.';
   }
+  if(t?.mode==='strict' && !paused && !windowsApp && t.owner===localOwner && document.documentElement.dataset.concentraBloqueo!=='activo')$('runningNote').textContent='Protección web pendiente. Revisa Apps y sitios.';
   if(t?.mode==='focus' && !paused){
     $('mode').textContent=t.owner!==localOwner?'Concentración en otro dispositivo':'Concentración';
     if(t.owner===localOwner&&!windowsApp&&document.documentElement.dataset.concentraBloqueo!=='activo'){
@@ -373,22 +427,45 @@ function renderTimer(){
   if(t?.mode==='focus' && t.owner && t.owner!==localOwner){$('start').hidden=true;$('stop').hidden=true;}
   document.querySelectorAll('[data-min]').forEach(b=>b.setAttribute('aria-pressed',Number(b.dataset.min)===data.minutes));
   modeHint();
-  const custom=![15,25,50].includes(data.minutes);
-  $('custom').textContent=custom?data.minutes+' min':'Otra';$('custom').setAttribute('aria-pressed',custom);
+  const rest=desktopModes&&!t?restState():null;
+  $('medina').hidden=!t;$('custom').disabled=!!t||!!rest?.id;
+  document.querySelector('.intervals').hidden=!desktopModes;
+  for(const btn of document.querySelectorAll('[data-phase]')){
+    btn.setAttribute('aria-pressed',btn.dataset.phase===(rest?.phase||'study'));btn.disabled=!!t||!!rest?.id;
+  }
+  if(rest)renderRest(rest);
 }
 function modeHint(){
   const hint=$('modeHint');if(!hint||!desktopModes)return;
   const mode=$('focusMode').value;
-  hint.hidden=mode==='normal'||!!data.timer;
+  hint.hidden=!!data.timer;
+  if(mode==='normal'){hint.textContent='Las apps y los sitios estarán disponibles durante este bloque.';return;}
   if(!hint.hidden)hint.textContent='Sitios elegidos: '+(chosenSites().join(', ')||'ninguno')+
     (windowsApp?' · Programas: '+deviceCommand('programCount'):'')+(mode==='strict'?' · Salida con confirmación.':' · Al pausar se liberan.');
 }
 if($('focusMode'))$('focusMode').onchange=()=>{deviceStore.setItem('concentra.modo',$('focusMode').value==='focus'?'focus':'normal');modeHint();};
-function startDevice(id,ms,mode,sites){
-  const safeSites=Array.isArray(sites)?sites.filter(d=>focusDomains.includes(d)):[];
-  const reply=deviceCommand(['run',id,Math.ceil(ms),mode,safeSites.join(','),soundOn()?'1':'0',desktopAlertsOn()?'1':'0'].join(':'));
+function verifyBrowserStart(t){
+  if(installedApp||!desktopModes||!['focus','strict'].includes(t.mode))return;
+  const deadline=t.end;
+  setTimeout(()=>{
+    if(data.timer?.id!==t.id||data.timer.end!==deadline||deadline<=Date.now())return;
+    const status=document.documentElement.dataset;
+    if(status.concentraBloqueo==='activo' && (!status.concentraVersion||Number(status.concentraFin)===deadline))return;
+    t.left=remaining(t);t.end=null;save();renderTimer();
+    dialog('El bloqueo quedó en pausa','<p>La extensión no confirmó las reglas. Puedes comprobar los sitios y volver a intentar desde el reloj.</p><button class="solid" id="reviewProtection">Revisar apps y sitios</button>');
+    $('reviewProtection').onclick=openProtection;
+  },3000);
+}
+function startDevice(id,ms,mode,sites,rest=false){
+  syncNativeAlarm();
+  const safeSites=Array.isArray(sites)?sites.filter(validSite):[];
+  const skipKey='concentra.excepciones.'+id;
+  const previous=deviceStore.getItem(skipKey);
+  const exclusions=mode==='normal'?'':previous??[...nextExclusions].join(',');
+  const reply=deviceCommand(['run',id,Math.ceil(ms),mode,safeSites.join(','),soundOn()?'1':'0',desktopAlertsOn()?'1':'0',rest?'rest':'study',exclusions].join(':'));
   const value=Number(reply);
   if(Number.isSafeInteger(value)&&value>Date.now()){
+    if(mode!=='normal'){deviceStore.setItem(skipKey,exclusions);nextExclusions.clear();}
     deviceStore.setItem('concentra.bloquePC',JSON.stringify({id,scope:studyScope}));return value;
   }
   say(reply||'El PC no pudo iniciar el bloque.');return 0;
@@ -404,7 +481,7 @@ function reconcileWindowsTimer(){
   let tracked;
   try{tracked=JSON.parse(deviceStore.getItem('concentra.bloquePC'));}catch{return;}
   if(!tracked || tracked.scope!==studyScope)return;
-  const t=data.timer;
+  const t=data.timer||(restState()?.id?{...restState(),mode:"normal",rest:true}:null);
   if(t?.end!=null && t.end<=Date.now())return;
   const active=deviceCommand('activeId');
   if(active && active!==tracked.id)return;
@@ -416,20 +493,23 @@ function reconcileWindowsTimer(){
   if(Math.abs(end-t.end)<1000){deviceDeadline=end;return;}
   if(active && deviceCommand('release:'+tracked.id)!=='OK')return;
   const left=remaining(t);
-  deviceDeadline=startDevice(t.id,left,t.mode,t.sites||[]);
-  if(!deviceDeadline){t.left=left;t.end=null;save();}
+  if(t.strict){deviceDeadline=0;t.end=null;t.left=left;save();say('Windows necesita tu confirmación para retomar la protección estricta.');return;}
+  deviceDeadline=startDevice(t.id,left,t.mode,t.sites||[],t.rest);
+  if(!deviceDeadline){t.left=left;t.end=null;if(t.rest)storeRest(t);else save();}
 }
+const resumeStrictIds=new Set();
 $('start').onclick=()=>{
   armAudio();
   if(strictDeadline()>Date.now())return;
+  if(desktopModes&&!data.timer&&restState()){const r=restState();if(r.end&&r.end<=Date.now())finishRest(r,true);else startRest();return;}
   if(settle()){refresh();say('¡Bloque completado! Tu avance quedó registrado.');return;}
   const t=data.timer;
   if(!t){
     const mode=desktopModes?$('focusMode').value:'legacy';
-    if(!installedApp && mode!=='normal' && desktopModes && (!chosenSites().length || !['listo','activo'].includes(document.documentElement.dataset.concentraBloqueo))){
+    if(!installedApp && mode!=='normal' && desktopModes && ((!document.documentElement.dataset.concentraVersion&&chosenSites().some(d=>!focusDomains.includes(d)))||!chosenSites().length || !['listo','activo'].includes(document.documentElement.dataset.concentraBloqueo))){
       openProtection();say('Para restringir sitios, usa la app de Windows o conecta la extensión y elige al menos un sitio.');return;
     }
-    const begin=reason=>{
+    const begin=reason=>preflight(mode,()=>{
       armAudio();
       const id=freshId();
       let end=Date.now()+data.minutes*60000;
@@ -452,10 +532,10 @@ $('start').onclick=()=>{
       if(desktopModes)Object.assign(data.timer,{owner:localOwner,mode,sites:chosenSites()});
       if(mode==='strict'||(installedApp&&!windowsApp))data.timer.strict=true;
       if($('focusMode'))$('focusMode').value='normal';
-      if($('finishBanner'))$('finishBanner').hidden=true;
-      save();renderTimer();schedule();
+      if(alarmId==='preview')ackAlarm();
+      save();renderTimer();schedule();verifyBrowserStart(data.timer);
       $('modal').close();
-    };
+    });
     if(mode==='strict'){
       dialog('¿Empezar en modo estricto?','<p>Durante este bloque podrás salir con confirmación. La pausa estará disponible en el modo Concentración.</p><button id="confirmStrict" class="solid">Empezar bloque estricto</button>');
       $('confirmStrict').onclick=()=>begin(currentReason());
@@ -466,9 +546,14 @@ $('start').onclick=()=>{
   }
   if(t.mode==='focus'&&t.owner!==localOwner)return;
   if(t.end===null){
+    if(t.strict && !resumeStrictIds.delete(t.id)){
+      dialog('¿Retomar el modo estricto?','<p>Se volverá a aplicar la protección a este bloque.</p><button class="solid" id="resumeStrict">Retomar bloque</button>');
+      $('resumeStrict').onclick=()=>{if(data.timer?.id!==t.id)return;resumeStrictIds.add(t.id);$('modal').close();$('start').click();};return;
+    }
     const end=windowsApp&&t.owner===localOwner?startDevice(t.id,t.left,t.mode,t.sites||[]):Date.now()+t.left;
     if(!end)return;t.end=end;t.left=null;
     if(windowsApp&&t.owner===localOwner)deviceDeadline=end;
+    verifyBrowserStart(t);
   }else{
     if(!releaseDevice(t))return;
     t.left=remaining(t);t.end=null;
@@ -476,6 +561,7 @@ $('start').onclick=()=>{
   save();renderTimer();schedule();
 };
 $('stop').onclick=()=>{
+  if(!data.timer&&restState()?.id){finishRest(restState(),false);return;}
   if(strictDeadline()>Date.now()&&(!desktopModes||data.timer?.owner!==localOwner))return;
   const id=data.timer?.id;
   if(!id)return;
@@ -546,20 +632,30 @@ function paint(){
   const w=box.width,h=box.height,dpr=Math.min(2,window.devicePixelRatio||1);canvas.width=w*dpr;canvas.height=h*dpr;
   const ctx=canvas.getContext('2d');ctx.scale(dpr,dpr);
   const grad=ctx.createLinearGradient(0,0,w,h);grad.addColorStop(0,'#193b33');grad.addColorStop(1,'#305d4b');ctx.fillStyle=grad;ctx.fillRect(0,0,w,h);
-  const x=w*.85,y=h*.25,r=Math.min(w*.085,43);ctx.beginPath();ctx.arc(x,y,r,0,2*Math.PI);ctx.fillStyle='#e5b784';ctx.fill();
+  const x=w*.84,y=h*.81,r=Math.min(w*.042,24);ctx.beginPath();ctx.arc(x,y,r,0,2*Math.PI);ctx.fillStyle='#e5b784';ctx.fill();
   for(let i=0;i<34;i++){
-    ctx.beginPath();for(let j=0;j<=180;j++){const a=j/180;const yy=h*(.90-.30*a+.08*Math.sin(a*7+.32)+.115*Math.sin(a*9.7-1.3))+i*5; if(j)ctx.lineTo(a*w,yy);else ctx.moveTo(0,yy);}
+    ctx.beginPath();for(let j=0;j<=180;j++){const a=j/180;const yy=h*(.97-.10*a+.038*Math.sin(a*7+.32)+.052*Math.sin(a*9.7-1.3))+i*4; if(j)ctx.lineTo(a*w,yy);else ctx.moveTo(0,yy);}
     ctx.strokeStyle='rgba(195,210,149,'+(.21+i*.004)+')';ctx.lineWidth=1;ctx.stroke();
   }
 }
-function refresh(){reconcileWindowsTimer();const ended=settle();if($('subject').value!==data.subject)$('subject').value=data.subject;if($('goal').value!==data.goal)$('goal').value=data.goal;$('date').textContent=new Date().toLocaleDateString('es-CL',{weekday:'long',day:'numeric',month:'long'});renderTimer();schedule();progress();if(ended)say('¡Bloque completado! Tu avance quedó registrado.');}
+function refresh(){reconcileWindowsTimer();const ended=settle();if($('subject').value!==data.subject)$('subject').value=data.subject;if($('goal').value!==data.goal)$('goal').value=data.goal;$('date').textContent=new Date().toLocaleDateString('es-CL',{weekday:'long',day:'numeric',month:'long'});renderTimer();schedule();progress();if(ended&&$('finishBanner').hidden)say('¡Bloque completado! Tu avance quedó registrado.');}
+let lastHealth=0;
 let lastMinute=Math.floor(Date.now()/60000);
 setInterval(()=>{if(deviceDeadline&&deviceDeadline<=Date.now()){deviceDeadline=0;refresh();}
   if(strictDeadline()>Date.now())$('digits').textContent=digits(strictDeadline()-Date.now());
   else if(data.timer?.end!=null&&data.timer.end<=Date.now())refresh();else if(data.timer)$('digits').textContent=digits(remaining(data.timer));
+  const rest=desktopModes&&!data.timer&&restState();
+  if(rest?.end){if(rest.end<=Date.now())finishRest(rest,true);else $('digits').textContent=digits(remaining(rest));}
+  if(windowsApp && data.timer?.end>Date.now() && data.timer.owner===localOwner && data.timer.mode!=='normal' && Math.floor(Date.now()/2000)!==lastHealth){
+    lastHealth=Math.floor(Date.now()/2000);
+    const health=deviceCommand('activeId')===data.timer.id?deviceCommand('health'):'lost';
+    $('runningNote').hidden=false;
+    $('runningNote').textContent=health.startsWith('appLimited:')?'Windows no logró minimizar '+health.slice(11)+'.':health==='minimized'?'Windows recibió la orden de minimizar la aplicación elegida.':health==='limited'?'Protección limitada: no se pudo leer la dirección del navegador.':health==='covered'?'Sitio elegido cubierto en el navegador.':health==='ready'?'Protección en espera de una app o un sitio elegido.':'Windows dejó de confirmar la protección. Revisa Apps y sitios.';
+  }
   const minute=Math.floor(Date.now()/60000);if(minute!==lastMinute){lastMinute=minute;schedule();progress();$('date').textContent=new Date().toLocaleDateString('es-CL',{weekday:'long',day:'numeric',month:'long'});}
 },400);
 window.addEventListener('storage',e=>{
+  if(e.key===restKey()){renderTimer();return;}
   if(studyScope!==accountScope()||(e.key!==studyKey()&&e.key!==null))return;
   const previous=data.calendarLink;
   const previousTimer=data.timer;
@@ -569,4 +665,6 @@ window.addEventListener('storage',e=>{
   if(JSON.stringify(previous)!==JSON.stringify(data.calendarLink))document.dispatchEvent(new Event('profile-loaded'));
 });
 document.addEventListener('visibilitychange',()=>{if(!document.hidden){load();refresh();}});
-window.addEventListener('resize',paint);refresh();go();
+document.addEventListener('account-change',()=>{silence();alarmId='';$('finishBanner').hidden=true;nextExclusions.clear();});
+document.addEventListener('profile-loaded',restoreFinish);
+window.addEventListener('resize',paint);refresh();restoreFinish();go();

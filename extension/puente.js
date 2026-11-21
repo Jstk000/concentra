@@ -5,7 +5,11 @@ async function sync(){
   try{
     const s=JSON.parse(localStorage.getItem(key)||'{}');
     const ack=await chrome.runtime.sendMessage({end:s.timer?.end||0,sites:s.blockSites??['instagram.com','tiktok.com','x.com']});
-    if(n===seq)document.documentElement.dataset.concentraBloqueo=ack?.state||'error';
+    if(n===seq){
+      const el=document.documentElement;el.dataset.concentraVersion='1.1';
+      el.dataset.concentraFin=String(ack?.end||0);
+      el.dataset.concentraBloqueo=ack?.state||'error';
+    }
   }catch{document.documentElement.dataset.concentraBloqueo='error';}
 }
 document.addEventListener('concentra-sync',sync);

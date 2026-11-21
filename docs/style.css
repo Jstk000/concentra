@@ -12,3 +12,54 @@ dialog details{margin:16px 0;padding:12px;background:#f2f3e8;border-radius:10px}
 .profileSync{display:flex;align-items:center;flex-wrap:wrap;gap:6px 16px;margin-bottom:16px}.profileSync:has(#syncStudy[hidden]):has(#importStudy[hidden]){margin-bottom:10px}
 
 .focus-mode{display:block;margin:.7rem 0}.focus-mode select{max-width:100%;padding:.45rem;font:inherit;border-radius:.45rem}.finish-banner{padding:.7rem;background:#fff9e8;color:#183d33;border-radius:.5rem;margin:.5rem 0}.finish-banner button{margin-left:.4rem}.focus-check{width:auto}
+
+.focus-heading{display:flex;align-items:center;justify-content:space-between;gap:1rem;margin:0 0 18px}.focus-heading h1{margin:0}
+.settings-button,.subtle-button{background:#fffef7;color:#20483c;border:1px solid #aebbab;border-radius:12px;padding:9px 15px;font-weight:650}
+.timerbody{align-items:center;text-align:center;padding:26px clamp(14px,4vw,42px) 20px}
+.timer{background:#193e37}.timerlabel{margin:26px 0 5px}.timer h2{font-size:clamp(22px,2.2vw,30px)}
+.intervals,.setting-tabs{display:flex;gap:3px;padding:4px;border-radius:14px;flex-wrap:wrap;justify-content:center}
+.intervals{background:#112e29}.intervals button,.setting-tabs button{border-radius:11px;padding:8px 14px;color:#f1f6e7;background:transparent;font-size:14px;font-weight:600;min-height:40px}
+.intervals [aria-pressed=true]{background:#e6edc7;color:#173e37}.intervals button:disabled:not([aria-pressed=true]){opacity:.65}
+.clock-button{background:none;color:inherit;padding:0 8px;border-radius:12px}.clock-button:disabled{cursor:default}
+.digits{font:500 clamp(72px,9vw,116px)/1.08 Georgia,serif;font-variant-numeric:tabular-nums;letter-spacing:-.065em}
+.focus-mode{margin:12px 0 0;color:#e7efd7;text-align:left}.focus-mode select{display:block;color:#193e37;background:#f9fbef;min-height:40px;margin-top:4px}
+#modeHint,#runningNote{font-size:14px;line-height:1.4;margin:8px auto 0}
+.timer .actions{margin-top:15px;justify-content:center}.timer .primary{min-width:175px;min-height:46px}
+.timer-tools{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 18px;margin-top:12px}
+.medina-link{background:#193e37;color:#eef4d6;margin:0;padding:6px;font-size:14px}
+.setting-tabs{background:#eaf0dc;justify-content:flex-start;margin:16px 0}.setting-tabs button{color:#23493e}.setting-tabs [aria-current=true]{color:white;background:#245143}
+.setting-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid #dde2d4}.setting-row label,.setting-row p{margin:0}.setting-row input[type=number]{width:80px}.setting-row select{width:auto}.setting-row input[type=checkbox],.choice-list input{width:19px;height:19px;accent-color:#255541;flex:none}
+.choice-list{display:grid;gap:4px;max-height:245px;overflow:auto}.choice-list label{display:flex;align-items:center;gap:9px;background:#f5f6eb;border-radius:8px;padding:9px;margin:0;min-width:0;overflow-wrap:anywhere}
+.choice-list img{width:24px;height:24px}.choice-list small{font-weight:400}.choice-list .path{overflow-wrap:anywhere}.choice-list input{margin-left:auto}
+.finish-banner{position:sticky;top:8px;z-index:4;background:#f3e3ae;border:1px solid #ac9053;display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:12px 18px;box-shadow:0 4px 16px #1234}.finish-banner button{background:#203e35;color:white;border-radius:10px;padding:8px 14px}
+@media(max-width:900px){.dashboard{grid-template-columns:minmax(0,1.3fr) minmax(230px,1fr)}}@media(max-width:760px){.dashboard{grid-template-columns:minmax(0,1fr)}.timerbody{padding:18px 12px}.intervals button{padding:7px 10px}.focus-heading h1{font-size:46px}.focus-heading{margin-bottom:15px}}@media(max-width:360px){.bar nav{gap:14px}.intervals button{font-size:12px}.stats div{padding:0 6px}}
+
+.program-entry details{margin:0 0 4px;padding:2px 9px;font-size:12px;background:transparent}.program-entry .skip{background:transparent;font-size:12px;justify-content:flex-start;padding:2px 9px}.choice-list .skip input{margin:0}.program-entry span{min-width:0}.program-entry .path{word-break:break-all}
+
+dialog:has(.setting-tabs){width:min(560px,94vw)}.picker-tabs{display:flex;gap:10px;margin:0 0 12px}.picker-tabs button{background:none;padding:5px 0;border-bottom:2px solid transparent;color:#466254}.picker-tabs [aria-pressed=true]{border-color:#245143;font-weight:700}.program-entry details{display:none}.paths-visible .program-entry details{display:block}.show-paths{font-weight:400}.show-paths input{vertical-align:middle}.choice-list{max-height:min(30vh,250px)}#modalBody:has(#findApp) section>h3{margin-top:10px}
+
+.program-filters{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(115px,1fr);gap:10px}.program-filters input,.program-filters select{height:44px}@media(max-width:420px){.program-filters{grid-template-columns:minmax(0,1fr)}}
+
+.tones{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0;border:0;padding:0}.tones legend{font-weight:650}.tones label{padding:8px 10px;border-radius:10px;border:1px solid #aebbab;cursor:pointer}.tones label:has(:checked){background:#e9f0da;border-color:#345641}.tones input{width:auto;accent-color:#245143}.program-filters[hidden],.show-paths[hidden]{display:none}
+
+/* Session workspace */
+.focus-heading h1{font-size:clamp(42px,5.1vw,62px)}.focus-heading{margin-bottom:20px}
+.dashboard{align-items:start}.dashboard aside{display:grid;gap:12px}.dashboard aside .scheduleHint{margin:0}.dashboard .objective,.protection-card{padding:20px 24px}
+.timerbody{min-height:400px;padding:28px 20px 40px;justify-content:flex-start;gap:0}
+.intervals{align-self:center;background:#133b33;border:1px solid #708675;border-radius:24px}.intervals button{border-radius:22px;min-height:38px}
+.timerlabel{margin:34px 0 5px}.digits{font-family:"Segoe UI",Arial,sans-serif;font-weight:350;font-size:clamp(76px,8.5vw,116px);letter-spacing:-.065em;line-height:1.17}
+.timer .actions{margin:18px 0 0}.timer .actions button{min-height:44px}.timer .actions #start{padding-inline:30px;background:#dfefac}
+.timer-tools{margin-top:8px}.timer-tools:has(#medina[hidden]){display:none}.timer .medina-link{background:transparent;text-decoration-color:#a5bb9f}
+.timer[data-state=paused] .timerlabel i{background:#ecc298}.timer[data-state=rest] .timerlabel i{background:#a9d7d2}
+.protection-card h2{font-size:24px}.protection-card .focus-mode{color:#385549;margin:10px 0 0}.protection-card .focus-mode select{width:100%;background:#fffef9;font-size:15px}
+.protection-card #modeHint{color:#445b4b;margin:8px 0 0;font-size:13px}.protection-card .link{color:#254f42}
+dialog:has(.setting-tabs){padding:22px 26px;background:#fffdf5}.setting-tabs{border-radius:22px;gap:2px;justify-content:stretch}.setting-tabs button{flex:1;border-radius:18px}
+.tones{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.tones legend{padding:0 0 6px}.tones label{display:flex;align-items:center;gap:10px;margin:0;min-height:58px;background:#f8f7ee;border-radius:12px}.tones small{display:block;font-size:12px;line-height:1.35;color:#536654}.tones input{flex:none;margin:0;width:16px;height:16px}
+#level,#modalBody input[type=checkbox]{accent-color:#285741}#modalBody label:has(>#enableDesktop),#modalBody label:has(>#enableVisual),#modalBody label:has(>#enableSound){display:flex;align-items:center;gap:8px;min-height:30px;margin:0}.choice-list label:hover{background:#e9efdf}
+.finish-banner{background:#f2f5df;color:#203d33;border:1px solid #a8b99d;border-radius:16px;justify-content:flex-start;flex-wrap:wrap;gap:8px 12px}.finish-mark{width:32px;height:32px;display:grid;place-items:center;border-radius:50%;background:#284f42;color:#e5edc4;font-style:normal}.finish-banner #finishText{flex:1;min-width:160px}.finish-banner button{margin:0}.finish-banner #dismissFinish{background:#fffef7;color:#24473c;border:1px solid #a4b495}
+@media(prefers-reduced-motion:no-preference){.finish-banner:not([hidden]){animation:finish-in .18s ease-out}@keyframes finish-in{from{opacity:.4;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}}
+@media(max-width:760px){.timerbody{min-height:315px;padding:18px 12px 28px}.timerlabel{margin-top:23px}.dashboard .objective,.protection-card{padding:17px 18px}.dashboard aside{gap:10px}.tones label{padding:7px}.focus-heading{margin-bottom:14px}}
+@media(max-width:420px){dialog:has(.setting-tabs){padding:16px}.tones small{font-size:11px}.setting-tabs button{padding:6px}.finish-banner #finishText{min-width:120px}}
+
+.clock-stack{display:grid;gap:12px;min-width:0}.clock-stack .scheduleHint{margin:0}
+@media(max-width:760px){.dashboard aside,.clock-stack{display:contents}.dashboard .timer{order:0}.dashboard .protection-card{order:1}.dashboard .objective{order:2}.dashboard .scheduleHint{order:3}}

@@ -1,8 +1,9 @@
 import {build} from 'esbuild';
 import fs from 'node:fs/promises';
-const files={'/timer-worker.js':'timer-worker.js','/':'index.html','/style.css':'style.css','/app.js':'app.js','/grupo.js':'grupo.js','/icon.png':'icon.png','/app.webmanifest':'app.webmanifest'};
+const files={'/timer-worker.js':'timer-worker.js','/':'index.html','/focus.js':'focus.js','/style.css':'style.css','/app.js':'app.js','/grupo.js':'grupo.js','/icon.png':'icon.png','/app.webmanifest':'app.webmanifest'};
 const assets={};
 assets['/bloqueador.zip']=(await fs.readFile('docs/bloqueador.zip')).toString('base64');
+for(const tone of ['campana','pulso','acorde','brio','descanso'])assets['/'+tone+'.wav']=(await fs.readFile('docs/'+tone+'.wav')).toString('base64');
 for(const [route,name] of Object.entries(files)){
   const bytes=await fs.readFile('docs/'+name);
   assets[route]=name.endsWith('.png')?bytes.toString('base64'):bytes.toString('utf8');

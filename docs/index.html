@@ -4,30 +4,32 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#173e37"><meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="description" content="Organiza tus bloques de estudio entre clases y sigue tu progreso.">
-<title>Concentra · Estudio digital</title><link rel="icon" href="./icon.png"><link rel="apple-touch-icon" href="./icon.png">
-<link rel="manifest" href="./app.webmanifest"><link rel="stylesheet" href="./style.css?v=winfocus2"><script src="./app.js?v=winfocus2" defer></script>
-<meta name="robots" content="noindex,nofollow"><meta name="referrer" content="strict-origin-when-cross-origin"><script src="./cuenta.js?v=motivo2" defer></script><script src="./grupo.js?v=perfil2" defer></script><script src="./horario.js?v=perfil2" defer></script><script src="./perfil.js?v=winfocus2" defer></script></head>
+<title>Concentra · Beta 0.3.5</title><link rel="icon" href="./icon.png"><link rel="apple-touch-icon" href="./icon.png">
+<link rel="manifest" href="./app.webmanifest"><link rel="stylesheet" href="./style.css?v=local035"><script src="./focus.js" defer></script><script src="./app.js?v=beta035" defer></script>
+<meta name="robots" content="noindex,nofollow"><meta name="referrer" content="strict-origin-when-cross-origin"><script src="./cuenta.js?v=motivo2" defer></script><script src="./grupo.js?v=perfil2" defer></script><script src="./horario.js?v=perfil2" defer></script><script src="./perfil.js?v=local035" defer></script></head>
 <body>
 <header><div class="bar"><a href="#hoy" class="brand"><i class="brandmark" aria-hidden="true">◒</i>Concentra</a><nav aria-label="Navegación principal"><a href="#hoy">Hoy</a><a href="#horario">Mi horario</a><a href="#avance">Mi avance</a><a href="#grupo">Grupo</a></nav><button class="link" id="accountButton">Iniciar sesión</button><button id="help" class="help" aria-label="Guía para iPhone">?</button></div></header>
 <main>
-<div id="finishBanner" class="finish-banner" hidden><span role="status" id="finishText"></span> <button id="dismissFinish" type="button">Entendido</button></div>
+<div id="finishBanner" class="finish-banner" hidden><i class="finish-mark" aria-hidden="true">✓</i><span role="status" id="finishText"></span><button id="finishRestAction" type="button" hidden>Ir al descanso</button><button id="dismissFinish" type="button">Entendido</button></div>
 <div class="profileSync"><small role="status" id="profileState"></small><button id="importStudy" hidden class="link">Importar mis datos anteriores</button><button id="syncStudy" class="link" hidden>Sincronizar</button></div>
 <p class="eyebrow date" id="date"></p>
 <section id="hoy" class="page">
-<h1>Mi estudio<span>.</span></h1>
-<div class="dashboard"><article class="timer"><canvas id="land" aria-hidden="true"></canvas><div class="timerbody">
+<div class="focus-heading"><h1>Mi estudio<span>.</span></h1><button class="settings-button" id="settings">Ajustes</button></div>
+<div class="dashboard"><div class="clock-stack"><article class="timer"><canvas id="land" aria-hidden="true"></canvas><div class="timerbody">
+<div class="intervals" role="group" aria-label="Intervalo"><button data-phase="study" aria-pressed="true">Estudio</button><button data-phase="short">Pausa corta</button><button data-phase="long">Pausa larga</button></div>
 <p class="eyebrow timerlabel"><i></i><span id="mode">Sesión de enfoque</span></p>
-<h2 id="sessionTitle">Tiempo de estudiar</h2><div class="digits" id="digits" role="timer">25:00</div>
-<div class="presets" id="presets" role="group" aria-label="Duración del bloque"><button data-min="15">15 min</button><button data-min="25">25 min</button><button data-min="50">50 min</button><button id="custom">Otra</button></div>
-<label id="focusModeField" class="focus-mode" hidden>Modo de la sesión <select id="focusMode"><option value="normal">Solo temporizador</option><option value="focus">Concentración · permite pausar</option><option value="strict">Estricto · salida con confirmación</option></select></label>
-<p id="modeHint" hidden></p><p id="runningNote" hidden></p><div class="actions"><button id="start" class="primary">▶　Empezar bloque</button><button id="stop" hidden>Terminar</button></div>
-<button id="medina" class="medina-link">Me estoy distrayendo</button>
-<button id="proteger" class="medina-link">Bloqueo y avisos</button>
-<button id="timerAlerts" class="medina-link">Sonido y avisos</button>
+<h2 id="sessionTitle">Tiempo de estudiar</h2><button id="custom" class="clock-button" aria-label="Cambiar duración del intervalo"><span class="digits" id="digits" role="timer">25:00</span></button>
+<div id="presets" hidden></div>
+<p id="runningNote" hidden></p><div class="actions"><button id="start" class="primary">▶　Empezar bloque</button><button id="stop" hidden>Terminar</button></div>
+<div class="timer-tools"><button id="medina" class="medina-link">Me estoy distrayendo</button>
+</div>
 
-</div></article>
+
+</div></article><div class="scheduleHint"><div class="row"><b>Entre clases</b><a href="#horario" aria-label="Ver mi horario">↗</a></div><p id="suggestion"></p><button id="fit" hidden></button></div></div>
 <aside><section class="card objective"><p class="eyebrow"><b class="dot"></b> Mi objetivo</p><h2>¿Qué vas a estudiar?</h2><label for="subject">Ramo</label><input id="subject" maxlength="60" placeholder="Ej. Cálculo II" list="subjects"><datalist id="subjects"></datalist><label for="goal">Meta de la sesión</label><textarea id="goal" maxlength="160" rows="2" placeholder="Ej. Resolver tres integrales"></textarea></section>
-<div class="scheduleHint"><div class="row"><b>Entre clases</b><a href="#horario" aria-label="Ver mi horario">↗</a></div><p id="suggestion"></p><button id="fit" hidden></button></div></aside></div>
+<section class="card protection-card"><div class="row"><h2>Protección</h2><button id="proteger" class="link">Apps y sitios</button></div><label id="focusModeField" class="focus-mode" hidden>Modo de la sesión <select id="focusMode"><option value="normal">Solo temporizador</option><option value="focus">Concentración · permite pausar</option><option value="strict">Estricto · salida con confirmación</option></select></label>
+<p id="modeHint" hidden></p></section>
+</aside></div>
 <div class="sectionhead"><h2>Tu día en cifras</h2><a href="#avance">Ver avance ↗</a></div>
 <div class="stats"><div><small>Tiempo de enfoque</small><strong id="todayMin">0 <em>min</em></strong></div><div><small>Bloques completados</small><strong id="todayCount">0</strong></div><div><small>Racha de estudio</small><strong id="streak">0 <em>días</em></strong></div></div>
 </section>
