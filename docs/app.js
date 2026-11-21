@@ -88,7 +88,10 @@ function normalizeStudy(saved){
   return data;
 }
 function mirrorStudy(){
-  deviceStore.setItem(key,JSON.stringify({timer:data.timer && data.timer.mode!=='normal' && (!data.timer.owner || data.timer.owner===localOwner)?{end:data.timer.end}:null,blockSites:data.blockSites??['instagram.com']}));
+  const t=data.timer;
+  const localProtection=t&&t.mode!=='normal'&&(!t.owner||t.owner===localOwner);
+  const sites=localProtection&&Array.isArray(t.sites)?t.sites:data.blockSites??['instagram.com'];
+  deviceStore.setItem(key,JSON.stringify({timer:localProtection?{end:t.end}:null,blockSites:sites}));
   document.dispatchEvent(new Event('concentra-sync'));
 }
 function save() {
@@ -147,6 +150,63 @@ function showProtectionStatus(){
   if($('installSteps'))$('installSteps').hidden=webBlockerReady();
 }
 function webBlockerReady(){return ['listo','activo'].includes(document.documentElement.dataset.concentraBloqueo);}
+function browserStartIssue(sites=chosenSites()){
+  if(!sites.length)return 'sites';
+  if(!webBlockerReady())return 'connection';
+  if(!document.documentElement.dataset.concentraVersion&&sites.some(site=>!focusDomains.includes(site)))return 'version';
+  return '';
+}
+function resolveBrowserStart(mode,issue,pausedId=null){
+  const owner=studyScope,token=accountToken();
+  const message={
+    sites:'Elige al menos un sitio para este bloque.',
+    connection:'Comprobando si la extensión responde en esta pestaña…',
+    version:'La extensión conectada admite los seis sitios incluidos. Actualízala o ajusta tu selección para usar otros dominios.'
+  };
+  dialog('Preparar el bloque','<p id="connectMessage" role="status"></p><div class="actions">'+
+    (issue==='sites'?'<button id="useInstagram" class="solid">Bloquear Instagram y empezar</button>':'')+
+    '<button id="retryConnection" class="solid" hidden>Reintentar conexión</button><button id="timerOnly" class="subtle-button">Empezar solo este bloque sin bloqueo</button><button id="manageBlocker" class="link">Revisar apps y sitios</button></div>');
+  const notice=$('connectMessage');
+  notice.textContent=message[issue];
+  function current(){
+    const sameBlock=pausedId?data.timer?.id===pausedId&&data.timer.end===null:!data.timer;
+    return $('modal').open&&$('connectMessage')===notice&&studyScope===owner&&accountToken()===token&&sameBlock&&!restState();
+  }
+  function resume(nextMode){
+    if(!current())return;
+    if(pausedId&&nextMode==='normal'){data.timer.mode='normal';data.timer.strict=false;}
+    $('modal').close();
+    startOrPause(nextMode);
+  }
+  if(pausedId)$('timerOnly').textContent='Continuar este bloque sin bloqueo';
+  $('timerOnly').onclick=()=>resume('normal');
+  $('manageBlocker').onclick=openProtection;
+  if($('useInstagram'))$('useInstagram').onclick=()=>{
+    if(!current())return;
+    data.blockSites=['instagram.com'];if(pausedId)data.timer.sites=[...data.blockSites];save();resume(mode);
+  };
+  if(issue!=='connection')return;
+  function reconnect(){
+    $('retryConnection').hidden=true;
+    notice.textContent=message.connection;
+    const check=()=>{
+      if(!current()){cleanup();return;}
+      if(webBlockerReady()){cleanup();resume(mode);}
+    };
+    const observer=new MutationObserver(check);
+    const timeout=setTimeout(()=>{
+      cleanup();
+      if(!current())return;
+      notice.textContent='La extensión no respondió. Si ya está instalada, comprueba que esté habilitada en este perfil y tenga acceso a jstk000.github.io. Después recarga Concentra.';
+      $('retryConnection').hidden=false;
+    },2500);
+    function cleanup(){observer.disconnect();clearTimeout(timeout);}
+    observer.observe(document.documentElement,{attributes:true,attributeFilter:['data-concentra-bloqueo']});
+    document.dispatchEvent(new Event('concentra-sync'));check();
+  }
+  $('retryConnection').onclick=reconnect;
+  reconnect();
+}
 new MutationObserver(()=>{showProtectionStatus();if(desktopModes)renderTimer();}).observe(document.documentElement,{attributes:true,attributeFilter:['data-concentra-bloqueo']});
 const esc = value => String(value).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 const dayKey = t => new Date(t).toLocaleDateString('sv-SE');
@@ -430,7 +490,7 @@ function renderTimer(){
       $('runningNote').hidden=false;$('runningNote').textContent='Bloqueo del navegador pendiente. Revisa Bloqueo y avisos.';
     }
   }
-  if(t?.mode==='focus' && t.owner && t.owner!==localOwner){$('start').hidden=true;$('stop').hidden=true;}
+  if(foreignProtectedSession(t)){$('start').hidden=true;$('stop').hidden=true;}
   document.querySelectorAll('[data-min]').forEach(b=>b.setAttribute('aria-pressed',Number(b.dataset.min)===data.minutes));
   modeHint();
   const rest=desktopModes&&!t?restState():null;
@@ -455,7 +515,7 @@ function modeHint(){
       else hint.textContent='Esperando confirmación del bloqueo en este navegador.';
       return;
     }
-    if(!webBlockerReady()){hint.textContent='El bloqueo web necesita la extensión. Abre Apps y sitios para conectarla.';return;}
+    if(!webBlockerReady()){hint.textContent='Esta pestaña aún no ha conectado con la extensión. Puedes iniciar el contador sin bloqueo.';return;}
     if(mode==='normal'){hint.textContent='Extensión conectada. Elige Concentración para bloquear sitios durante el estudio.';return;}
   }
   hint.hidden=!!data.timer;
@@ -471,9 +531,9 @@ function verifyBrowserStart(t){
     if(data.timer?.id!==t.id||data.timer.end!==deadline||deadline<=Date.now())return;
     const status=document.documentElement.dataset;
     if(status.concentraBloqueo==='activo' && (!status.concentraVersion||Number(status.concentraFin)===deadline))return;
-    t.left=remaining(t);t.end=null;save();renderTimer();
-    dialog('El bloqueo quedó en pausa','<p>La extensión no confirmó las reglas. Puedes comprobar los sitios y volver a intentar desde el reloj.</p><button class="solid" id="reviewProtection">Revisar apps y sitios</button>');
-    $('reviewProtection').onclick=openProtection;
+    const current=data.timer;
+    current.left=remaining(current);current.end=null;save();renderTimer();
+    say('El bloque quedó en pausa porque la extensión no confirmó las reglas. Pulsa Continuar para reintentar.');
   },3000);
 }
 function startDevice(id,ms,mode,sites,rest=false){
@@ -518,16 +578,19 @@ function reconcileWindowsTimer(){
   if(!deviceDeadline){t.left=left;t.end=null;if(t.rest)storeRest(t);else save();}
 }
 const resumeStrictIds=new Set();
-$('start').onclick=()=>{
+function foreignProtectedSession(t){return t?.owner&&t.owner!==localOwner&&['focus','strict'].includes(t.mode);}
+$('start').onclick=()=>startOrPause();
+function startOrPause(requestedMode){
   armAudio();
   if(strictDeadline()>Date.now())return;
   if(desktopModes&&!data.timer&&restState()){const r=restState();if(r.end&&r.end<=Date.now())finishRest(r,true);else startRest();return;}
   if(settle()){refresh();say('¡Bloque completado! Tu avance quedó registrado.');return;}
   const t=data.timer;
   if(!t){
-    const mode=desktopModes?$('focusMode').value:'legacy';
-    if(!installedApp && mode!=='normal' && desktopModes && ((!document.documentElement.dataset.concentraVersion&&chosenSites().some(d=>!focusDomains.includes(d)))||!chosenSites().length || !['listo','activo'].includes(document.documentElement.dataset.concentraBloqueo))){
-      openProtection();say('Para restringir sitios, usa la app de Windows o conecta la extensión y elige al menos un sitio.');return;
+    const mode=desktopModes?(requestedMode||$('focusMode').value):'legacy';
+    if(!installedApp && mode!=='normal' && desktopModes){
+      const issue=browserStartIssue();
+      if(issue){resolveBrowserStart(mode,issue);return;}
     }
     const begin=reason=>preflight(mode,()=>{
       armAudio();
@@ -564,8 +627,12 @@ $('start').onclick=()=>{
     else askReason('Tu motivo para este bloque','Empezar bloque',begin);
     return;
   }
-  if(t.mode==='focus'&&t.owner!==localOwner)return;
+  if(foreignProtectedSession(t))return;
   if(t.end===null){
+    if(!installedApp&&desktopModes&&['focus','strict'].includes(t.mode)){
+      const issue=browserStartIssue(t.sites||chosenSites());
+      if(issue){resolveBrowserStart(t.mode,issue,t.id);return;}
+    }
     if(t.strict && !resumeStrictIds.delete(t.id)){
       dialog('¿Retomar el modo estricto?','<p>Se volverá a aplicar la protección a este bloque.</p><button class="solid" id="resumeStrict">Retomar bloque</button>');
       $('resumeStrict').onclick=()=>{if(data.timer?.id!==t.id)return;resumeStrictIds.add(t.id);$('modal').close();$('start').click();};return;
@@ -579,13 +646,13 @@ $('start').onclick=()=>{
     t.left=remaining(t);t.end=null;
   }
   save();renderTimer();schedule();
-};
+}
 $('stop').onclick=()=>{
   if(!data.timer&&restState()?.id){finishRest(restState(),false);return;}
   if(strictDeadline()>Date.now()&&(!desktopModes||data.timer?.owner!==localOwner))return;
   const id=data.timer?.id;
   if(!id)return;
-  if(data.timer.mode==='focus' && data.timer.owner!==localOwner)return;
+  if(foreignProtectedSession(data.timer))return;
   const minutes=Math.max(0,Math.floor((data.timer.minutes*60000-remaining(data.timer))/60000));
   dialog('¿Terminar este bloque?','<p>Llevas '+minutes+' min de estudio. Al terminar se liberan las restricciones.</p>'+(minutes&&data.timer.goal?'<label><input type="checkbox" id="goalDone" class="focus-check"> Cumplí mi meta</label>':'')+(minutes?'<button class="solid" id="partial">Guardar '+minutes+' min y terminar</button> ':'')+'<button class="link" id="discard">Descartar bloque</button> <button class="link" id="restartBlock">Reiniciar desde cero</button> <button class="link" id="keep">Seguir estudiando</button>');
   $('keep').onclick=()=> $('modal').close();
