@@ -144,8 +144,10 @@ function showProtectionStatus(){
   const el=$('extStatus');if(!el)return;
   const status=document.documentElement.dataset.concentraBloqueo;
   el.textContent=({activo:'Extensión conectada · bloqueo activo',listo:'Extensión conectada · sin bloqueo activo',error:'No se pudo aplicar el bloqueo. Revisa los permisos y recarga esta página.'})[status]||'Extensión sin detectar en este navegador.';
+  if($('installSteps'))$('installSteps').hidden=webBlockerReady();
 }
-new MutationObserver(()=>{showProtectionStatus();if(data.timer)renderTimer();}).observe(document.documentElement,{attributes:true,attributeFilter:['data-concentra-bloqueo']});
+function webBlockerReady(){return ['listo','activo'].includes(document.documentElement.dataset.concentraBloqueo);}
+new MutationObserver(()=>{showProtectionStatus();if(desktopModes)renderTimer();}).observe(document.documentElement,{attributes:true,attributeFilter:['data-concentra-bloqueo']});
 const esc = value => String(value).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 const dayKey = t => new Date(t).toLocaleDateString('sv-SE');
 const clockTime = t => new Date(t).toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'});
@@ -407,7 +409,11 @@ function renderTimer(){
   const localStrict=strictActive && desktopModes && data.timer?.owner===localOwner;
   const protectedNow=strictActive;
   if($('focusModeField'))$('focusModeField').hidden=!desktopModes||!!t;
-  if($('focusMode')&&!t && $('focusMode').value!=='strict')$('focusMode').value=deviceStore.getItem('concentra.modo')==='focus'?'focus':'normal';
+  if(!t && $('focusMode').value!=='strict'){
+    const savedMode=deviceStore.getItem('concentra.modo');
+    const firstProtectedBlock=savedMode===null&&!installedApp&&desktopModes&&webBlockerReady()&&chosenSites().length>0;
+    $('focusMode').value=savedMode==='focus'||firstProtectedBlock?'focus':'normal';
+  }
   $('start').hidden=protectedNow;$('stop').hidden=!t||(protectedNow&&!localStrict);
   $('stop').textContent=localStrict?'Salir del modo estricto':'Terminar';
   if(protectedNow){
@@ -438,6 +444,20 @@ function renderTimer(){
 function modeHint(){
   const hint=$('modeHint');if(!hint||!desktopModes)return;
   const mode=$('focusMode').value;
+  if(!installedApp&&!windowsApp){
+    hint.hidden=false;
+    const t=data.timer;
+    if(t){
+      if(t.mode==='normal'||!t.mode)hint.textContent='Este bloque está en Solo temporizador: sin bloqueo de sitios.';
+      else if(t.owner!==localOwner)hint.textContent='La protección se controla desde el equipo que inició este bloque.';
+      else if(t.end===null)hint.textContent='Bloque en pausa. Los sitios están disponibles.';
+      else if(document.documentElement.dataset.concentraBloqueo==='activo'&&(!document.documentElement.dataset.concentraVersion||Number(document.documentElement.dataset.concentraFin)===t.end))hint.textContent='Bloqueo activo en este navegador · '+(t.sites||chosenSites()).join(', ');
+      else hint.textContent='Esperando confirmación del bloqueo en este navegador.';
+      return;
+    }
+    if(!webBlockerReady()){hint.textContent='El bloqueo web necesita la extensión. Abre Apps y sitios para conectarla.';return;}
+    if(mode==='normal'){hint.textContent='Extensión conectada. Elige Concentración para bloquear sitios durante el estudio.';return;}
+  }
   hint.hidden=!!data.timer;
   if(mode==='normal'){hint.textContent='Las apps y los sitios estarán disponibles durante este bloque.';return;}
   if(!hint.hidden)hint.textContent='Sitios elegidos: '+(chosenSites().join(', ')||'ninguno')+
